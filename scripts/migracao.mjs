@@ -16,6 +16,8 @@
  * via game.actors.invalidDocumentIds/getInvalid. O botão manual em
  * Configurar → Módulos → T20 Hayd Bases e Domínios cobre esse caso.
  */
+const { DialogV2 } = foundry.applications.api;
+
 const MODULO = "t20-hayd-bases-e-dominios";
 
 const ANTIGOS = {
@@ -58,14 +60,21 @@ function coletarAlvos(info) {
 
 /** Muda o "type" dos atores do tipo antigo para o novo — o schema dos dois
  * é idêntico (mesmo DataModel, só registrado sob outro id de módulo), então
- * o "system" inteiro é preservado automaticamente pela conversão. */
+ * o "system" inteiro é preservado automaticamente pela conversão.
+ *
+ * O Foundry só aceita trocar o "type" de um documento se o campo "system"
+ * for explicitamente force-substituído (senão ele tenta mesclar o dado
+ * antigo contra o schema do novo tipo e recusa a operação); por isso o
+ * update inclui o "system" atual (bruto, direto de _source) com
+ * {recursive: false}. */
 async function migrarAtores(info) {
   const alvos = coletarAlvos(info);
   if (!alvos.length) return { migrados: 0, falhas: 0 };
   let migrados = 0, falhas = 0;
   for (const ator of alvos) {
     try {
-      await ator.update({ type: info.tipoNovo });
+      const systemAtual = foundry.utils.deepClone(ator._source?.system ?? ator.system ?? {});
+      await ator.update({ type: info.tipoNovo, system: systemAtual }, { recursive: false });
       migrados++;
     } catch (err) {
       falhas++;
@@ -125,6 +134,19 @@ export async function executarMigracao({ manual = false } = {}) {
         `T20 Hayd Bases e Domínios: ${totalMigrados} ator(es) migrado(s)${configMigrada ? "; configurações herdadas" : ""}.` +
         (totalFalhas ? ` ${totalFalhas} falha(s) — veja o console (F12).` : "")
       );
+      /* O ator só passa a ser exibido/editado corretamente pela ficha nova
+       * depois que a coleção de atores é reconstruída do zero — o que só
+       * acontece recarregando o mundo, não basta o update ter sido aceito. */
+      if (totalMigrados) {
+        const recarregar = await DialogV2.confirm({
+          window: { title: "T20 Hayd Bases e Domínios" },
+          content: `<p>${totalMigrados} ator(es) migrado(s) com sucesso.</p>
+            <p><strong>É necessário recarregar o mundo</strong> para que eles passem a ser exibidos e editados corretamente.</p>`,
+          yes: { label: "Recarregar agora", default: true },
+          no: { label: "Recarregar depois" }
+        }).catch(() => false);
+        if (recarregar) foundry.utils.debouncedReload();
+      }
     } else {
       ui.notifications.info("T20 Hayd Bases e Domínios: nenhum ator ou configuração pendente de migração.");
     }
@@ -172,7 +194,9 @@ Hooks.once("ready", async () => {
 
   const antigosAtivos = [basesAtivo && "t20-hayd-bases", dominiosAtivo && "t20-hayd-dominios"].filter(Boolean);
   const linhas = [];
-  if (totalMigrados > 0) linhas.push(`<li>${totalMigrados} ator(es) migrado(s) automaticamente para o novo tipo deste módulo.</li>`);
+  if (totalMigrados > 0) {
+    linhas.push(`<li>${totalMigrados} ator(es) migrado(s) automaticamente para o novo tipo deste módulo — <strong>recarregue o mundo (F5)</strong> se algum deles não abrir com a ficha correta.</li>`);
+  }
   if (configMigrada) linhas.push(`<li>As configurações dos módulos antigos foram herdadas.</li>`);
   linhas.push(`<li>Módulo(s) ainda ativo(s): <strong>${antigosAtivos.join(", ")}</strong>.</li>`);
 

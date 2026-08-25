@@ -1,0 +1,39 @@
+<header class="t20d-header">
+  <div class="t20d-retrato" data-action="editarImagem" data-tooltip="Alterar imagem">
+    <img src="{{actor.img}}" alt="{{actor.name}}">
+    <span class="t20d-selo {{#if mistico}}mistico{{/if}}">{{#if mistico}}Místico{{else}}Nível {{system.nivel}}{{/if}}</span>
+  </div>
+
+  <div class="t20d-titulo">
+    <input type="text" name="name" value="{{actor.name}}" placeholder="Nome do Domínio">
+    <div class="t20d-subinfo">
+      <span><i class="fa-solid fa-mountain-sun"></i> {{terrenoAtual.nome}}</span>
+      <span><i class="fa-solid fa-crown"></i> Corte {{corteAtual.nome}}</span>
+      {{#unless mistico}}<span><i class="fa-solid fa-users"></i> {{popularidadeAtual.nome}}</span>{{/unless}}
+      <span><i class="fa-solid fa-chess-rook"></i> Fortificação +{{system.fortificacao}}</span>
+      {{#if mistico}}<span><i class="fa-solid fa-wand-sparkles"></i> +{{system.pmMistico}} PM ao regente</span>{{/if}}
+    </div>
+  </div>
+
+  <div class="t20d-tesouro" data-action="ajustarTesouro" data-tooltip="Clique para ajustar o tesouro">
+    <span class="t20d-lo">{{system.tesouro.lo}}</span>
+    <label>Lingotes de Ouro</label>
+    <small>1 LO = T$ 1.000</small>
+  </div>
+
+  <div class="t20d-regente">
+    {{#if regente}}
+      <img src="{{regente.img}}" alt="{{regente.nome}}" data-action="abrirRegente" data-tooltip="Abrir ficha do regente">
+      <div>
+        <label>Regente</label>
+        <strong>{{regente.nome}}</strong>
+        <a data-action="removerRegente" data-tooltip="Remover regente"><i class="fa-solid fa-link-slash"></i></a>
+      </div>
+    {{else}}
+      <div class="t20d-regente-vazio">
+        <i class="fa-solid fa-user-plus"></i>
+        <span>Arraste um ator para vinculá-lo como <strong>regente</strong></span>
+      </div>
+    {{/if}}
+  </div>
+</header>

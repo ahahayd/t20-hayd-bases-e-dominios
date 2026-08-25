@@ -1,0 +1,38 @@
+<section class="t20b-aba" data-tab="inventario">
+  <div class="t20b-inventario">
+    <div class="t20b-painel">
+      <h3><i class="fa-solid fa-coins"></i> Caixa do Grupo (moedas da base)</h3>
+      <div class="t20b-moedas-linha">
+        <label title="Tibar de ouro (vale T$ 10)">TO
+          <input type="number" name="system.dinheiro.to" value="{{system.dinheiro.to}}" min="0" step="1"></label>
+        <label title="Tibar (moeda de prata)">T$
+          <input type="number" name="system.dinheiro.tp" value="{{system.dinheiro.tp}}" min="0" step="1"></label>
+        <label title="Tibar de cobre (vale T$ 0,1)">TC
+          <input type="number" name="system.dinheiro.tc" value="{{system.dinheiro.tc}}" min="0" step="1"></label>
+        <span class="t20b-mini"><i class="fa-solid fa-scale-balanced"></i> Valor total: {{totalMoedas}}</span>
+      </div>
+      <p class="notes">Estas moedas podem ser utilizadas para compras e despesas da base.</p>
+    </div>
+
+    <p class="notes"><i class="fa-solid fa-hand-pointer"></i> Arraste itens (armas, equipamentos, consumíveis e tesouros) de fichas ou compêndios para esta ficha para guardá-los na base.</p>
+
+    {{#each inventario}}
+    <div class="t20b-painel">
+      <h3><i class="fa-solid {{icone}}"></i> {{rotulo}} <span class="t20b-contagem">{{itens.length}}</span></h3>
+      {{#each itens}}
+      <div class="t20b-inv-linha">
+        <img src="{{img}}" alt="">
+        <a class="t20b-inv-nome" data-action="abrirItem" data-id="{{id}}" title="Abrir item">{{nome}}</a>
+        <input class="t20b-inv-qtd" type="number" data-id="{{id}}" value="{{qtd}}" min="0" step="1" title="Quantidade">
+        <span class="t20b-inv-preco">{{precoFmt}}</span>
+        <button type="button" class="t20b-icone t20b-perigo" data-action="excluirItem" data-id="{{id}}" title="Excluir da base">
+          <i class="fa-solid fa-trash"></i>
+        </button>
+      </div>
+      {{else}}
+      <p class="notes">Nada guardado aqui.</p>
+      {{/each}}
+    </div>
+    {{/each}}
+  </div>
+</section>

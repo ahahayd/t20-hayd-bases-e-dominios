@@ -1,0 +1,36 @@
+<section class="t20d-aba" data-tab="unidades">
+  <div class="t20d-barra-acoes">
+    <span><i class="fa-solid fa-shield-halved"></i> Poder total: <strong>{{system.poderTotal}}</strong></span>
+    <span><i class="fa-solid fa-sack-dollar"></i> Manutenção: <strong>{{system.manutencaoUnidades}} LO/turno</strong></span>
+    <span class="t20d-espaco"></span>
+    <button type="button" data-action="recrutar"><i class="fa-solid fa-user-plus"></i> Recrutar (ação de domínio)</button>
+    <button type="button" data-action="acaoDominio" data-acao="convocar" data-tooltip="1 LO · 1d6 camponeses até o fim do turno · popularidade –1"><i class="fa-solid fa-people-group"></i> Convocar camponeses</button>
+  </div>
+
+  {{#if unidades.length}}
+    <table class="t20d-tabela">
+      <tr>
+        <th>Unidade</th><th>Qtd.</th><th>Poder</th><th>Desl.</th><th>Defesa</th><th>Dano</th><th>Manut.</th><th></th>
+      </tr>
+      {{#each unidades}}
+        <tr class="{{#if this.temporaria}}temporaria{{/if}}">
+          <td><strong>{{this.nome}}</strong>{{#if this.temporaria}} <small>(até o fim do turno)</small>{{/if}}{{#if this.nota}}<br><small>{{this.nota}}</small>{{/if}}</td>
+          <td>{{this.qtd}}</td>
+          <td>{{this.poderTotal}}</td>
+          <td>{{this.desl}}</td>
+          <td>{{this.defesa}}</td>
+          <td>{{this.dano}}</td>
+          <td>{{this.manutencao}} LO</td>
+          <td><a data-action="removerUnidade" data-id="{{this.id}}" data-tooltip="Dispensar unidade"><i class="fa-solid fa-trash"></i></a></td>
+        </tr>
+      {{/each}}
+    </table>
+  {{else}}
+    <p class="t20d-vazio">Nenhuma tropa a serviço do domínio. Recrute unidades (é preciso possuir a construção correspondente) ou convoque camponeses em emergências.</p>
+  {{/if}}
+
+  <div class="t20d-painel">
+    <h3><i class="fa-solid fa-person-hiking"></i> Levando tropas em aventuras</h3>
+    <p class="t20d-nota">O regente pode levar até <strong>{{system.nivel}}</strong> unidade(s) (o nível do domínio) em uma aventura. Cada unidade funciona como um <strong>capanga com 10 membros</strong>, com as estatísticas acima, não conta no limite de parceiros e pode ser usada em <strong>uma única cena</strong> — depois retorna ao domínio até a próxima aventura.</p>
+  </div>
+</section>

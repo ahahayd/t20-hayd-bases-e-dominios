@@ -1,0 +1,71 @@
+<section class="t20b-aba" data-tab="geral">
+  <div class="t20b-colunas">
+    <div class="t20b-painel">
+      <h3><i class="fa-solid fa-house-chimney"></i> Características</h3>
+      <div class="form-group">
+        <label>Tipo <span class="notes">(mudar exige uma reforma)</span></label>
+        <div class="t20b-inline">
+          <select name="system.tipo">
+            {{#each tipos}}<option value="{{key}}" {{#if selecionado}}selected{{/if}}>{{nome}}</option>{{/each}}
+          </select>
+          <button type="button" class="t20b-botao" data-action="reformar" title="Reforma: metade do custo do porte, teste CD 20 + nº de cômodos">
+            <i class="fa-solid fa-hammer"></i> Reformar
+          </button>
+        </div>
+        <p class="notes">{{tipoAtual.beneficio}}.</p>
+      </div>
+      <div class="form-group">
+        <label>Porte</label>
+        <div class="t20b-inline">
+          <select name="system.porte">
+            {{#each portes}}<option value="{{key}}" {{#if selecionado}}selected{{/if}}>{{nome}}</option>{{/each}}
+          </select>
+          <button type="button" class="t20b-botao" data-action="aumentarPorte" title="Ação entre aventuras: diferença de preço + teste CD 20 + cômodos do novo porte">
+            <i class="fa-solid fa-up-right-and-down-left-from-center"></i> Ampliar
+          </button>
+        </div>
+        <p class="notes">Até {{porteAtual.comodos}} cômodos · Manutenção {{manutencaoFmt}} · Ex.: {{porteAtual.exemplos}}.</p>
+      </div>
+      <div class="form-group">
+        <label>Forma física</label>
+        <input type="text" name="system.descricaoFisica" value="{{system.descricaoFisica}}" placeholder="Torre pequena, veleiro, complexo de cavernas…">
+      </div>
+      <div class="form-group">
+        <label>Segurança — outras fontes</label>
+        <input type="number" name="system.seguranca.outros" value="{{system.seguranca.outros}}" step="1">
+        <p class="notes">Total <strong>{{system.segurancaTotal}}</strong> (máx. 20): {{segFontes}}.</p>
+        <p class="notes">Invasores com ND menor que a segurança sofrem penalidade igual à diferença em perícias e dano; ND 5 abaixo não consegue invadir.</p>
+      </div>
+      <div class="t20b-acoes-linha">
+        <button type="button" class="t20b-botao" data-action="sincronizar" title="Recriar os Efeitos Ativos em todos os moradores">
+          <i class="fa-solid fa-rotate"></i> Sincronizar benefícios
+        </button>
+        <button type="button" class="t20b-botao t20b-perigo" data-action="limparEfeitos" title="Remover todos os efeitos desta base dos moradores">
+          <i class="fa-solid fa-eraser"></i> Limpar efeitos
+        </button>
+      </div>
+    </div>
+    <div class="t20b-painel">
+      <h3><i class="fa-solid fa-coins"></i> Caixa do Grupo</h3>
+      <p class="notes">Fundo compartilhado para custear obras, mobílias e manutenção — são as moedas guardadas na base (edite-as na aba Inventário). Saldo: <strong>{{caixaFmt}}</strong> (TO {{system.dinheiro.to}} · T$ {{system.dinheiro.tp}} · TC {{system.dinheiro.tc}}).</p>
+      <div class="t20b-acoes-linha">
+        <button type="button" class="t20b-botao" data-action="ajustarCaixa"><i class="fa-solid fa-plus-minus"></i> Depositar / Gastar</button>
+        {{#if ehGM}}
+        <button type="button" class="t20b-botao t20b-perigo" data-action="limparHistorico" data-tooltip="Apagar todas as movimentações registradas (o saldo não é alterado)">
+          <i class="fa-solid fa-trash"></i> Limpar histórico
+        </button>
+        {{/if}}
+      </div>
+      <div class="t20b-historico">
+        {{#each historico}}
+        <div class="t20b-historico-linha">
+          <span class="t20b-historico-desc" title="Aventura {{aventura}} · {{data}}{{#if usuario}} · por {{usuario}}{{/if}}">{{desc}}{{#if usuario}} <span class="t20b-historico-user">· {{usuario}}</span>{{/if}}</span>
+          <span class="{{#if positivo}}t20b-bom{{else}}t20b-ruim{{/if}}">{{deltaFmt}}</span>
+        </div>
+        {{else}}
+        <p class="notes">Nenhuma movimentação registrada.</p>
+        {{/each}}
+      </div>
+    </div>
+  </div>
+</section>

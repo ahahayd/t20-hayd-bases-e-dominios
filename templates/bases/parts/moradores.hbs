@@ -1,0 +1,32 @@
+<section class="t20b-aba" data-tab="moradores">
+  <p class="notes"><i class="fa-solid fa-hand-pointer"></i> Arraste atores para esta ficha para adicioná-los como moradores. Os benefícios da base (tipo, cômodos e mobílias) são distribuídos como Efeitos Ativos a quem estiver com o interruptor ligado.</p>
+  <div class="t20b-cartoes">
+    {{#each moradores}}
+    <article class="t20b-cartao t20b-morador {{#unless recebe}}t20b-inativo{{/unless}}">
+      <header>
+        <img class="t20b-morador-img" src="{{img}}" alt="">
+        <strong>{{nome}}</strong>
+        <span class="t20b-flex"></span>
+        <span class="t20b-mini" title="Efeitos automatizados que este morador recebe">{{qtdEfeitos}} <i class="fa-solid fa-bolt"></i></span>
+        <button type="button" class="t20b-icone" data-action="alternarMorador" data-uuid="{{uuid}}" title="{{#if recebe}}Parar de receber{{else}}Voltar a receber{{/if}} benefícios">
+          <i class="fa-solid {{#if recebe}}fa-toggle-on{{else}}fa-toggle-off{{/if}}"></i>
+        </button>
+        <button type="button" class="t20b-icone" data-action="verEfeitosMorador" data-uuid="{{uuid}}" title="Ver os benefícios calculados">
+          <i class="fa-solid fa-list-check"></i>
+        </button>
+        {{#if existe}}
+        <button type="button" class="t20b-icone" data-action="abrirMorador" data-uuid="{{uuid}}" title="Abrir ficha">
+          <i class="fa-solid fa-user"></i>
+        </button>
+        {{/if}}
+        <button type="button" class="t20b-icone t20b-perigo" data-action="removerMorador" data-uuid="{{uuid}}" title="Remover da base">
+          <i class="fa-solid fa-user-slash"></i>
+        </button>
+      </header>
+      {{#unless existe}}<p class="t20b-ruim">Ator não encontrado no mundo (foi excluído?).</p>{{/unless}}
+    </article>
+    {{else}}
+    <p class="notes">Nenhum morador ainda — a base parece bem vazia…</p>
+    {{/each}}
+  </div>
+</section>

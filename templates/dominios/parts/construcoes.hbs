@@ -1,0 +1,61 @@
+<section class="t20d-aba" data-tab="construcoes">
+  <div class="t20d-barra-acoes">
+    <span class="t20d-contagem"><i class="fa-solid fa-hammer"></i> {{construcoes.length}} / {{system.maxConstrucoes}} construções <small>(3 × nível)</small></span>
+    <span><i class="fa-solid fa-chess-rook"></i> Fortificação total: <strong>+{{system.fortificacao}}</strong></span>
+    <span class="t20d-espaco"></span>
+    <button type="button" data-action="abrirCatalogo"><i class="fa-solid fa-plus"></i> Construir (ação de domínio)</button>
+    <button type="button" data-action="criarHomebrew" data-tooltip="Criar construção personalizada com efeitos próprios"><i class="fa-solid fa-wand-magic-sparkles"></i> Homebrew</button>
+    <button type="button" data-action="sincronizarEfeitos" data-tooltip="Recria os Efeitos Ativos das construções na ficha do regente"><i class="fa-solid fa-arrows-rotate"></i> Sincronizar com o regente</button>
+    <button type="button" data-action="removerEfeitos" data-tooltip="Remove todos os efeitos deste domínio do regente"><i class="fa-solid fa-eraser"></i></button>
+  </div>
+
+  {{#if construcoes.length}}
+    <ul class="t20d-lista-cartoes">
+      {{#each construcoes}}
+        <li class="t20d-cartao">
+          <div class="t20d-cartao-info">
+            <strong>{{this.nome}}{{#if this.homebrew}} ★{{/if}}</strong>
+            <small>{{this.categoria}}{{#if this.fortificacao}} · Fortificação +{{this.fortificacao}}{{/if}}{{#if this.renda}} · gera renda{{/if}}</small>
+            <span>{{this.beneficio}}{{#if this.escolhaRotulo}} — <em>{{this.escolhaRotulo}}</em>{{/if}}</span>
+          </div>
+          <div class="t20d-cartao-botoes">
+            {{#if this.precisaEscolha}}
+              <a data-action="configurarConstrucao" data-id="{{this.id}}" data-tooltip="Configurar escolha"><i class="fa-solid fa-gear"></i></a>
+            {{/if}}
+            {{#if this.temEfeito}}
+              <a data-action="alternarEfeito" data-id="{{this.id}}" class="{{#if this.efeitoAtivo}}ligado{{/if}}"
+                 data-tooltip="{{#if this.efeitoAtivo}}Efeito ativo no regente (clique para desativar){{else}}Efeito desativado (clique para ativar){{/if}}">
+                <i class="fa-solid {{#if this.efeitoAtivo}}fa-toggle-on{{else}}fa-toggle-off{{/if}}"></i>
+              </a>
+            {{else}}
+              <span class="t20d-manual" data-tooltip="Benefício sem automação: aplique manualmente na ficha do regente"><i class="fa-solid fa-hand"></i></span>
+            {{/if}}
+            <a data-action="removerConstrucao" data-id="{{this.id}}" data-tooltip="Demolir"><i class="fa-solid fa-trash"></i></a>
+          </div>
+        </li>
+      {{/each}}
+    </ul>
+    <p class="t20d-nota"><i class="fa-solid fa-toggle-on"></i> Construções com interruptor geram Efeitos Ativos na ficha do regente (use <em>Sincronizar</em> após mudanças). As marcadas com <i class="fa-solid fa-hand"></i> têm benefícios situacionais — aplique-os manualmente.</p>
+  {{else}}
+    <p class="t20d-vazio">Nenhuma construção erguida. Use <strong>Construir</strong> para abrir o catálogo — cada obra custa lingotes e uma ação de domínio, com teste da perícia da categoria (CD 20 + nível).</p>
+  {{/if}}
+
+  {{#if homebrewConstrucoes.length}}
+    <div class="t20d-hb-definicoes">
+      <h3><i class="fa-solid fa-wand-magic-sparkles"></i> Construções homebrew deste domínio</h3>
+      <ul>
+        {{#each homebrewConstrucoes}}
+          <li>
+            <span class="t20d-hb-info">
+              <strong>{{this.nome}} ★</strong>
+              <small>{{this.categoriaNome}} · {{this.custo}} LO{{#if this.repetivel}} · repetível{{/if}}{{#if this.fortificacao}} · Fortificação +{{this.fortificacao}}{{/if}}{{#if this.rendaFormula}} · renda {{this.rendaFormula}} LO/turno{{/if}}{{#if this.eventoMod}} · eventos {{this.eventoMod}}%{{/if}}{{#if this.temEfeito}} · <i class="fa-solid fa-bolt" data-tooltip="Gera Efeito Ativo no regente"></i>{{/if}}</small>
+              <small>{{this.beneficio}}</small>
+            </span>
+            <a data-action="excluirHomebrew" data-key="{{this.key}}" data-tooltip="Excluir definição"><i class="fa-solid fa-trash"></i></a>
+          </li>
+        {{/each}}
+      </ul>
+      <p class="t20d-nota">As definições acima aparecem no catálogo de construções marcadas com ★. Erga-as normalmente com a ação <strong>Construir</strong>.</p>
+    </div>
+  {{/if}}
+</section>

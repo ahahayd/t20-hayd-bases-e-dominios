@@ -1,0 +1,38 @@
+<section class="t20b-aba" data-tab="aventura">
+  <div class="t20b-colunas">
+    <div class="t20b-painel">
+      <h3><i class="fa-solid fa-person-hiking"></i> Início de Aventura</h3>
+      <div class="form-group">
+        <label>Aventura atual</label>
+        <div class="t20b-inline">
+          <input type="number" name="system.aventura.numero" value="{{system.aventura.numero}}" min="0" step="1" style="width: 80px" title="Edite para ajustar manualmente o contador de aventuras">
+          <span class="notes">Manutenção {{manutencaoFmt}} {{#if system.aventura.manutencaoPaga}}<span class="t20b-bom">(paga)</span>{{else}}<span class="t20b-ruim">(pendente)</span>{{/if}}</span>
+        </div>
+      </div>
+      <button type="button" class="t20b-botao t20b-primario" data-action="iniciarAventura">
+        <i class="fa-solid fa-flag-checkered"></i> Iniciar nova aventura
+      </button>
+      <p class="notes">Cobra a manutenção (ou danifica um cômodo aleatório), avança o contador e lista as escolhas do início de aventura no chat.</p>
+      {{#if temCriados}}
+      <button type="button" class="t20b-botao" data-action="rolarCriados" title="1d4 PM temporários por patamar, para cada morador">
+        <i class="fa-solid fa-bell-concierge"></i> Rolar Ala dos Criados
+      </button>
+      {{/if}}
+      {{#if ehEmpreendimento}}
+      <button type="button" class="t20b-botao" data-action="empreendimento" title="Teste de Int + cômodos possíveis; rende TO iguais ao resultado">
+        <i class="fa-solid fa-sack-dollar"></i> Administrar o empreendimento
+      </button>
+      {{/if}}
+    </div>
+    <div class="t20b-painel">
+      <h3><i class="fa-solid fa-list-check"></i> Escolhas por aventura</h3>
+      {{#if lembretes.length}}
+      <ul class="t20b-lista">
+        {{#each lembretes}}<li><strong>{{origem}}:</strong> {{texto}}</li>{{/each}}
+      </ul>
+      {{else}}
+      <p class="notes">Nenhum cômodo ou mobília com escolhas de início de aventura.</p>
+      {{/if}}
+    </div>
+  </div>
+</section>

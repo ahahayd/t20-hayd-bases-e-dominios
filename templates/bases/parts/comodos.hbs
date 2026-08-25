@@ -1,0 +1,65 @@
+<section class="t20b-aba" data-tab="comodos">
+  <div class="t20b-barra">
+    <span class="t20b-contagem"><i class="fa-solid fa-door-open"></i> {{system.comodosConstruidos}}/{{system.maxComodos}} cômodos{{#if system.comodosDanificados}} · <span class="t20b-ruim">{{system.comodosDanificados}} danificado(s)</span>{{/if}}</span>
+    <span class="t20b-flex"></span>
+    <button type="button" class="t20b-botao" data-action="criarHomebrew" data-escopo="comodo" title="Criar cômodo personalizado com efeitos próprios">
+      <i class="fa-solid fa-wand-magic-sparkles"></i> Homebrew
+    </button>
+    <button type="button" class="t20b-botao t20b-primario" data-action="abrirCatalogoComodos">
+      <i class="fa-solid fa-trowel-bricks"></i> Construir cômodo
+    </button>
+  </div>
+
+  <div class="t20b-cartoes">
+    {{#each comodos}}
+    <article class="t20b-cartao {{#if danificado}}t20b-danificado{{/if}} {{#unless ativoOn}}t20b-inativo{{/unless}}">
+      <header>
+        <strong>{{nome}}{{#if homebrew}} ★{{/if}}</strong>
+        <span class="t20b-flex"></span>
+        {{#if seguranca}}<span class="t20b-mini" title="Segurança"><i class="fa-solid fa-shield-halved"></i>+{{seguranca}}</span>{{/if}}
+        {{#if temEfeito}}
+        <button type="button" class="t20b-icone" data-action="alternarComodo" data-id="{{id}}" title="{{#if ativoOn}}Desligar{{else}}Ligar{{/if}} os efeitos deste cômodo">
+          <i class="fa-solid {{#if ativoOn}}fa-toggle-on{{else}}fa-toggle-off{{/if}}"></i>
+        </button>
+        {{/if}}
+        {{#if precisaConfig}}
+        <button type="button" class="t20b-icone" data-action="configurarComodo" data-id="{{id}}" title="Configurar escolhas">
+          <i class="fa-solid fa-gear"></i>
+        </button>
+        {{/if}}
+        {{#if danificado}}
+        <button type="button" class="t20b-icone" data-action="repararComodo" data-id="{{id}}" title="Reparar (1 ação + metade do custo)">
+          <i class="fa-solid fa-screwdriver-wrench"></i>
+        </button>
+        {{/if}}
+        <button type="button" class="t20b-icone t20b-perigo" data-action="removerComodo" data-id="{{id}}" title="Demolir">
+          <i class="fa-solid fa-trash"></i>
+        </button>
+      </header>
+      <p class="t20b-beneficio">{{beneficio}}.</p>
+      <footer>
+        {{#if danificado}}<span class="t20b-ruim"><i class="fa-solid fa-triangle-exclamation"></i> Danificado — sem bônus até o reparo</span>{{/if}}
+        {{#if escolhaRotulo}}<span class="t20b-mini"><i class="fa-solid fa-check"></i> {{escolhaRotulo}}</span>{{/if}}
+        {{#if ehSuite}}<span class="t20b-mini" title="Moradores da suíte"><i class="fa-solid fa-bed"></i> {{#if suiteNomes}}{{suiteNomes}}{{else}}vaga{{/if}}</span>{{/if}}
+        {{#if mobiliasAqui}}<span class="t20b-mini" title="Mobílias instaladas"><i class="fa-solid fa-couch"></i> {{mobiliasAqui}}</span>{{/if}}
+      </footer>
+    </article>
+    {{else}}
+    <p class="notes">Nenhum cômodo construído. Cada cômodo exige 1 ação entre aventuras, T$ 1.000 e um teste de Nobreza (CD 20 + cômodos que a base pode ter).</p>
+    {{/each}}
+  </div>
+
+  {{#if homebrewComodos.length}}
+  <div class="t20b-painel t20b-painel-hb">
+    <h3><i class="fa-solid fa-wand-magic-sparkles"></i> Cômodos homebrew desta base</h3>
+    {{#each homebrewComodos}}
+    <div class="t20b-historico-linha">
+      <span>★ <strong>{{nome}}</strong> — {{beneficio}}</span>
+      <button type="button" class="t20b-icone t20b-perigo" data-action="excluirHomebrew" data-escopo="comodo" data-key="{{key}}" title="Excluir definição">
+        <i class="fa-solid fa-trash"></i>
+      </button>
+    </div>
+    {{/each}}
+  </div>
+  {{/if}}
+</section>

@@ -1,0 +1,363 @@
+/* ================================================================
+   t20-hayd-bases | bases.css
+
+   1) BASE — layout + aparência padrão do Foundry VTT v13:
+      não sobrescreve janela, inputs, selects nem botões do
+      ApplicationV2; usa as variáveis de tema do núcleo.
+   2) TEMA HAYD — visual dark glassmorphic (cantos retos), aplicado
+      SOMENTE quando o módulo t20-hayd-ui está ativo (classe
+      .tema-hayd adicionada via JS). A cor de destaque segue o
+      t20-hayd-ui (cor do dono / cor padrão configurável) e é
+      definida inline em --t20b-destaque pela ficha.
+   ================================================================ */
+
+/* ================================================================
+   1. BASE — layout (válido para os dois temas)
+   ================================================================ */
+
+.tormenta20-bases {
+  --t20b-destaque: #960505;
+  --t20b-bom: var(--color-level-success, #2e7d32);
+  --t20b-ruim: var(--color-level-error, #c0392b);
+  --t20b-borda: var(--color-fieldset-border, rgba(128, 128, 128, 0.4));
+  --t20b-texto-suave: var(--color-text-secondary, #7a7971);
+  --t20b-painel: rgba(128, 128, 128, 0.08);
+}
+
+.tormenta20-bases .t20b-conteudo {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 10px;
+  overflow: hidden;
+}
+
+/* ------------------------------ Header ------------------------------ */
+.t20b-header { display: flex; gap: 12px; align-items: center; }
+.t20b-retrato {
+  width: 72px; height: 72px; object-fit: cover; cursor: pointer;
+  border: 1px solid var(--t20b-borda); border-radius: 4px;
+}
+.t20b-header-info { flex: 1; display: flex; flex-direction: column; gap: 6px; }
+.t20b-nome {
+  font-size: 1.5em; font-weight: 700;
+  background: transparent; border: none;
+  border-bottom: 1px solid var(--t20b-borda); border-radius: 0;
+}
+.t20b-nome:focus { border-bottom-color: var(--t20b-destaque); box-shadow: none; }
+.t20b-linha-status { display: flex; flex-wrap: wrap; gap: 6px; }
+.t20b-chip {
+  display: inline-flex; align-items: center; gap: 5px;
+  padding: 2px 9px; font-size: 0.85em;
+  background: var(--t20b-painel); border: 1px solid var(--t20b-borda);
+  border-radius: 3px;
+}
+.t20b-chip i { color: var(--t20b-destaque); }
+.t20b-chip-botao { cursor: pointer; width: auto; line-height: inherit; }
+.t20b-chip-botao:hover { border-color: var(--t20b-destaque); }
+
+/* ------------------------------- Nav -------------------------------- */
+.t20b-nav { display: flex; gap: 2px; border-bottom: 1px solid var(--t20b-borda); flex-wrap: wrap; }
+.t20b-nav button {
+  background: transparent; border: none; border-bottom: 2px solid transparent;
+  border-radius: 0; color: var(--t20b-texto-suave);
+  padding: 6px 12px; cursor: pointer; font-size: 0.92em; width: auto;
+}
+.t20b-nav button:hover { color: inherit; box-shadow: none; }
+.t20b-nav button.ativa {
+  color: inherit;
+  border-bottom-color: var(--t20b-destaque);
+  background: color-mix(in srgb, var(--t20b-destaque) 12%, transparent);
+}
+
+/* ------------------------------- Abas -------------------------------- */
+section.t20b-aba { display: none; flex: 1; overflow-y: auto; padding-right: 4px; }
+section.t20b-aba.ativa { display: block; }
+
+.t20b-colunas { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; align-items: start; }
+.t20b-painel {
+  background: var(--t20b-painel);
+  border: 1px solid var(--t20b-borda);
+  border-radius: 4px;
+  padding: 10px;
+  display: flex; flex-direction: column; gap: 8px;
+}
+.t20b-painel h3 {
+  margin: 0; font-size: 1em; border-bottom: 1px solid var(--t20b-borda);
+  padding-bottom: 5px;
+}
+.t20b-painel h3 i { color: var(--t20b-destaque); margin-right: 5px; }
+.t20b-painel-hb { margin-top: 10px; }
+
+/* Formulários (somente layout; aparência dos campos é a do núcleo) */
+.tormenta20-bases .form-group { display: flex; flex-direction: column; gap: 3px; margin: 0; }
+.tormenta20-bases .form-group > label { font-size: 0.85em; color: var(--t20b-texto-suave); }
+.tormenta20-bases .notes { font-size: 0.8em; color: var(--t20b-texto-suave); margin: 0; }
+.t20b-inline { display: flex; gap: 6px; align-items: center; }
+
+/* Botões */
+.t20b-botao {
+  padding: 5px 11px; cursor: pointer; font-size: 0.88em;
+  display: inline-flex; align-items: center; gap: 6px; width: auto;
+}
+.t20b-botao i { color: var(--t20b-destaque); }
+.t20b-botao.t20b-primario { font-weight: 700; }
+.t20b-botao.t20b-perigo i, .t20b-icone.t20b-perigo i { color: var(--t20b-ruim); }
+.t20b-acoes-linha { display: flex; gap: 6px; flex-wrap: wrap; }
+
+.t20b-icone {
+  background: transparent; border: none; border-radius: 0;
+  color: var(--t20b-texto-suave); cursor: pointer; padding: 2px 4px;
+  width: auto; line-height: 1;
+}
+.t20b-icone:hover { color: inherit; box-shadow: none; }
+.t20b-icone i { font-size: 0.95em; }
+
+/* Barra superior das abas de lista */
+.t20b-barra {
+  display: flex; align-items: center; gap: 6px;
+  margin-bottom: 8px; flex-wrap: wrap;
+}
+.t20b-contagem { font-size: 0.9em; color: var(--t20b-texto-suave); }
+.t20b-contagem i { color: var(--t20b-destaque); }
+.t20b-flex { flex: 1; }
+
+/* Cartões */
+.t20b-cartoes { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.t20b-cartao {
+  background: var(--t20b-painel); border: 1px solid var(--t20b-borda);
+  border-left: 3px solid var(--t20b-destaque);
+  border-radius: 4px;
+  padding: 8px; display: flex; flex-direction: column; gap: 5px;
+}
+.t20b-cartao header { display: flex; align-items: center; gap: 5px; }
+.t20b-cartao .t20b-beneficio { font-size: 0.83em; color: var(--t20b-texto-suave); margin: 0; }
+.t20b-cartao footer { display: flex; flex-wrap: wrap; gap: 8px; font-size: 0.78em; }
+.t20b-cartao.t20b-danificado { border-left-color: var(--t20b-ruim); opacity: 0.9; }
+.t20b-cartao.t20b-inativo { opacity: 0.55; }
+.t20b-mini { color: var(--t20b-texto-suave); }
+.t20b-mini i { color: var(--t20b-destaque); margin-right: 3px; }
+
+.t20b-morador header { align-items: center; }
+.t20b-morador-img {
+  width: 34px; height: 34px; object-fit: cover;
+  border: 1px solid var(--t20b-borda); border-radius: 3px;
+}
+
+/* Histórico do caixa */
+.t20b-historico { display: flex; flex-direction: column; gap: 3px; max-height: 300px; overflow-y: auto; }
+.t20b-historico-linha {
+  display: flex; justify-content: space-between; gap: 8px;
+  font-size: 0.83em; padding: 3px 6px;
+  background: rgba(128, 128, 128, 0.1); border: 1px solid transparent;
+  border-radius: 3px;
+}
+.t20b-historico-linha:hover { border-color: var(--t20b-borda); }
+.t20b-historico-desc { color: var(--t20b-texto-suave); }
+.t20b-historico-user { opacity: 0.65; font-size: 0.9em; }
+
+.t20b-bom { color: var(--t20b-bom); }
+.t20b-ruim { color: var(--t20b-ruim); }
+
+/* Tabela de regras */
+.t20b-tabela { width: 100%; border-collapse: collapse; font-size: 0.85em; }
+.t20b-tabela th, .t20b-tabela td {
+  border: 1px solid var(--t20b-borda); padding: 3px 7px; text-align: left;
+}
+.t20b-tabela th { background: color-mix(in srgb, var(--t20b-destaque) 18%, transparent); }
+
+.t20b-lista { margin: 0; padding-left: 18px; font-size: 0.86em; display: flex; flex-direction: column; gap: 4px; }
+
+/* Rateio da manutenção entre personagens */
+.t20b-rateio { display: flex; flex-direction: column; gap: 8px; }
+.t20b-rateio-linhas { display: flex; flex-direction: column; gap: 6px; max-height: 45vh; overflow-y: auto; }
+.t20b-rateio-linha {
+  display: flex; align-items: center; gap: 8px; padding: 4px 6px;
+  background: rgba(128, 128, 128, 0.1); border: 1px solid rgba(128, 128, 128, 0.3);
+  border-radius: 3px;
+}
+.t20b-rateio-linha img { width: 32px; height: 32px; object-fit: cover; border: none; }
+.t20b-rateio-info { flex: 1; display: flex; flex-direction: column; line-height: 1.25; }
+.t20b-rateio-saldo { font-size: 0.78em; opacity: 0.75; }
+.t20b-rateio-linha input { width: 90px; text-align: right; }
+.t20b-rateio-linha.t20b-sem-fundos { border-color: #c0392b; }
+.t20b-rateio-linha.t20b-sem-fundos input { color: #c0392b; }
+.t20b-rateio-total { margin: 0; }
+.t20b-rateio-aviso { margin-left: 8px; font-size: 0.85em; color: #c0392b; }
+
+/* Inventário */
+.t20b-inventario { display: flex; flex-direction: column; gap: 10px; }
+.t20b-moedas-linha { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
+.t20b-moedas-linha label {
+  display: flex; align-items: center; gap: 6px;
+  font-weight: 600; font-size: 0.9em;
+}
+.t20b-moedas-linha input { width: 90px; }
+.t20b-inv-linha {
+  display: flex; align-items: center; gap: 8px; padding: 3px 6px;
+  background: rgba(128, 128, 128, 0.08); border: 1px solid transparent;
+  border-radius: 3px;
+}
+.t20b-inv-linha:hover { border-color: var(--t20b-borda); }
+.t20b-inv-linha img { width: 28px; height: 28px; object-fit: cover; border: none; }
+.t20b-inv-nome { flex: 1; cursor: pointer; }
+.t20b-inv-nome:hover { color: var(--t20b-destaque); }
+.t20b-inv-qtd { width: 58px; text-align: center; }
+.t20b-inv-preco {
+  width: 90px; text-align: right; white-space: nowrap;
+  font-size: 0.85em; color: var(--t20b-texto-suave);
+}
+
+/* Diário */
+.t20b-diario { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+
+/* --------------------------- Diálogos ------------------------------- */
+/* Rolagem: o conteúdo do diálogo rola e o rodapé de botões fica fixo. */
+.dialog:has(.t20b-catalogo) .window-content { overflow: hidden; }
+.dialog:has(.t20b-catalogo) form.dialog-form { flex: 1; min-height: 0; overflow: hidden; }
+.dialog:has(.t20b-catalogo) .dialog-content { flex: 1; min-height: 0; overflow-y: auto; padding-right: 4px; }
+.t20b-scroll { max-height: min(65vh, 560px); overflow-y: auto; padding-right: 6px; }
+
+.t20b-catalogo ul { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
+.t20b-catalogo li { display: flex; flex-direction: column; gap: 2px; padding-bottom: 6px; border-bottom: 1px solid rgba(128,128,128,0.25); }
+.t20b-catalogo li.desabilitada { opacity: 0.55; }
+.t20b-catalogo li > button {
+  display: flex; justify-content: space-between; gap: 8px;
+  text-align: left; cursor: pointer; width: 100%;
+}
+.t20b-catalogo .t20b-custo { white-space: nowrap; opacity: 0.8; }
+.t20b-catalogo .t20b-beneficio { font-size: 0.83em; opacity: 0.85; }
+.t20b-catalogo .t20b-erro { font-size: 0.78em; color: #c0392b; }
+.t20b-linha-efeito { display: flex; gap: 4px; margin-bottom: 4px; }
+.t20b-linha-efeito input[type="text"]:first-child { flex: 1; }
+.t20b-fieldset { border: 1px solid rgba(128,128,128,0.35); padding: 8px; }
+.t20b-fieldset legend { font-size: 0.85em; padding: 0 4px; }
+
+/* --------------------------- Chat ----------------------------------- */
+.t20b-chat { border: 1px solid #a89f93; border-left: 3px solid #960505; background: rgba(20, 17, 26, 0.04); }
+.t20b-chat-header { display: flex; gap: 8px; align-items: center; padding: 6px 8px; border-bottom: 1px solid rgba(128,128,128,0.35); }
+.t20b-chat-header img { width: 34px; height: 34px; object-fit: cover; border: none; }
+.t20b-chat-header h3 { margin: 0; font-size: 1em; border: none; }
+.t20b-chat-header span { font-size: 0.8em; opacity: 0.75; }
+.t20b-chat-body { padding: 6px 8px; font-size: 0.92em; }
+.t20b-chat-body p { margin: 0 0 4px; }
+.t20b-chat .t20b-bom { color: #1d7a24; }
+.t20b-chat .t20b-ruim { color: #a8322a; }
+.t20b-chat .t20b-lista { padding-left: 16px; }
+
+/* ------------------------- Responsivo ------------------------------- */
+@media (max-width: 760px) {
+  .t20b-colunas, .t20b-cartoes, .t20b-diario { grid-template-columns: 1fr; }
+}
+
+/* ================================================================
+   2. TEMA HAYD — dark glassmorphic, cantos retos
+   Aplicado somente com o módulo t20-hayd-ui ativo
+   (classe .tema-hayd adicionada via JS; --t20b-destaque definida
+   inline seguindo a cor do t20-hayd-ui).
+   ================================================================ */
+
+.tormenta20-bases.tema-hayd {
+  --t20b-destaque: var(--t20a-cor-destaque, #960505);
+  --t20b-fundo: rgba(16, 13, 20, 0.92);
+  --t20b-painel: rgba(255, 255, 255, 0.045);
+  --t20b-borda: rgba(255, 255, 255, 0.12);
+  --t20b-texto: #e8e4dc;
+  --t20b-texto-suave: #a89f93;
+  --t20b-bom: #6fbf73;
+  --t20b-ruim: #e06c5a;
+  color: var(--t20b-texto);
+}
+
+/* Janela */
+.tormenta20-bases.tema-hayd.application {
+  background: var(--t20b-fundo);
+  border: 1px solid var(--t20b-borda);
+  border-radius: 0;
+  color: var(--t20b-texto);
+  backdrop-filter: blur(8px);
+}
+.tormenta20-bases.tema-hayd .window-header {
+  background: linear-gradient(90deg, color-mix(in srgb, var(--t20b-destaque) 55%, transparent), transparent 70%);
+  border-bottom: 1px solid var(--t20b-borda);
+  border-radius: 0;
+}
+
+/* Cantos retos */
+.tema-hayd .t20b-retrato,
+.tema-hayd .t20b-chip,
+.tema-hayd .t20b-painel,
+.tema-hayd .t20b-cartao,
+.tema-hayd .t20b-morador-img,
+.tema-hayd .t20b-historico-linha,
+.tema-hayd .t20b-rateio-linha,
+.tema-hayd .t20b-inv-linha,
+.tema-hayd .t20b-botao { border-radius: 0; }
+
+/* Header */
+.tema-hayd .t20b-retrato { border: 2px solid var(--t20b-destaque); background: #0a080d; }
+.tema-hayd .t20b-nome { color: var(--t20b-texto); }
+.tema-hayd .t20b-chip { color: var(--t20b-texto); }
+.tema-hayd .t20b-nav button:hover { color: var(--t20b-texto); }
+.tema-hayd .t20b-nav button.ativa {
+  color: var(--t20b-texto);
+  background: color-mix(in srgb, var(--t20b-destaque) 14%, transparent);
+}
+
+/* Painéis e cartões */
+.tema-hayd .t20b-painel h3 { color: var(--t20b-texto); }
+.tema-hayd .t20b-historico-linha { background: rgba(0, 0, 0, 0.25); }
+.tema-hayd .t20b-inv-linha { background: rgba(0, 0, 0, 0.2); }
+.tema-hayd .t20b-rateio-linha { background: rgba(0, 0, 0, 0.15); }
+.tema-hayd .t20b-tabela th { background: color-mix(in srgb, var(--t20b-destaque) 22%, transparent); }
+.tema-hayd .t20b-tabela th, .tema-hayd .t20b-tabela td { color: var(--t20b-texto); }
+.tema-hayd .t20b-moedas-linha label { color: var(--t20b-texto); }
+
+/* Campos de formulário */
+.tormenta20-bases.tema-hayd input[type="text"],
+.tormenta20-bases.tema-hayd input[type="number"],
+.tormenta20-bases.tema-hayd select {
+  background: rgba(0, 0, 0, 0.35); color: var(--t20b-texto);
+  border: 1px solid var(--t20b-borda); border-radius: 0; padding: 4px 7px;
+}
+.tormenta20-bases.tema-hayd input:focus,
+.tormenta20-bases.tema-hayd select:focus {
+  border-color: var(--t20b-destaque); box-shadow: none; outline: none;
+}
+.tormenta20-bases.tema-hayd select option { background: #14111a; color: var(--t20b-texto); }
+.tormenta20-bases.tema-hayd .t20b-nome {
+  background: transparent; border: none;
+  border-bottom: 1px solid var(--t20b-borda);
+}
+.tormenta20-bases.tema-hayd .t20b-nome:focus { border-bottom-color: var(--t20b-destaque); }
+
+/* Botões */
+.tema-hayd .t20b-botao {
+  background: var(--t20b-painel); border: 1px solid var(--t20b-borda);
+  color: var(--t20b-texto);
+}
+.tema-hayd .t20b-botao:hover { border-color: var(--t20b-destaque); box-shadow: none; }
+.tema-hayd .t20b-botao.t20b-primario {
+  background: color-mix(in srgb, var(--t20b-destaque) 30%, transparent);
+  border-color: var(--t20b-destaque);
+  font-weight: 400;
+}
+.tema-hayd .t20b-icone:hover { color: var(--t20b-texto); }
+
+/* Editor de texto rico */
+.tormenta20-bases.tema-hayd prose-mirror { background: rgba(0, 0, 0, 0.25); border: 1px solid var(--t20b-borda); }
+
+/* Cartões de chat no tema Hayd: o t20-hayd-ui deixa o fundo das mensagens
+ * escuro, então o texto do cartão precisa ser claro. */
+.t20b-chat.tema-hayd {
+  --t20b-texto: #e8e4dc;
+  --t20b-texto-suave: #a89f93;
+  border-color: rgba(255, 255, 255, 0.18);
+  background: rgba(20, 17, 26, 0.35);
+}
+.t20b-chat.tema-hayd .t20b-chat-header { border-bottom-color: rgba(255, 255, 255, 0.18); }
+.t20b-chat.tema-hayd .t20b-chat-header h3,
+.t20b-chat.tema-hayd .t20b-chat-header span,
+.t20b-chat.tema-hayd .t20b-chat-body { color: var(--t20b-texto); }
+.t20b-chat.tema-hayd .t20b-bom { color: #6fbf73; }
+.t20b-chat.tema-hayd .t20b-ruim { color: #e06c5a; }

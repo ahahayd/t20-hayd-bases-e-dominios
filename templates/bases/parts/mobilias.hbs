@@ -1,0 +1,61 @@
+<section class="t20b-aba" data-tab="mobilias">
+  <div class="t20b-barra">
+    <span class="t20b-contagem"><i class="fa-solid fa-couch"></i> {{mobilias.length}} mobília(s){{#if system.maxGargulas}} · gárgulas {{system.gargulas}}/{{system.maxGargulas}}{{/if}}</span>
+    <span class="t20b-flex"></span>
+    <button type="button" class="t20b-botao" data-action="criarHomebrew" data-escopo="mobilia" title="Criar mobília personalizada com efeitos próprios">
+      <i class="fa-solid fa-wand-magic-sparkles"></i> Homebrew
+    </button>
+    <button type="button" class="t20b-botao t20b-primario" data-action="abrirCatalogoMobilias">
+      <i class="fa-solid fa-cart-shopping"></i> Adquirir mobília
+    </button>
+  </div>
+
+  <div class="t20b-cartoes">
+    {{#each mobilias}}
+    <article class="t20b-cartao {{#if comodoDanificado}}t20b-danificado{{/if}} {{#unless ativoOn}}t20b-inativo{{/unless}}">
+      <header>
+        <strong>{{nome}}{{#if homebrew}} ★{{/if}}</strong>
+        <span class="t20b-flex"></span>
+        {{#if temEfeito}}
+        <button type="button" class="t20b-icone" data-action="alternarMobilia" data-id="{{id}}" title="{{#if ativoOn}}Desligar{{else}}Ligar{{/if}} os efeitos desta mobília">
+          <i class="fa-solid {{#if ativoOn}}fa-toggle-on{{else}}fa-toggle-off{{/if}}"></i>
+        </button>
+        {{/if}}
+        {{#if precisaConfig}}
+        <button type="button" class="t20b-icone" data-action="configurarMobilia" data-id="{{id}}" title="Configurar escolhas">
+          <i class="fa-solid fa-gear"></i>
+        </button>
+        {{/if}}
+        <button type="button" class="t20b-icone" data-action="moverMobilia" data-id="{{id}}" title="Mover para outro cômodo (entre aventuras)">
+          <i class="fa-solid fa-arrows-up-down-left-right"></i>
+        </button>
+        <button type="button" class="t20b-icone t20b-perigo" data-action="removerMobilia" data-id="{{id}}" title="Remover">
+          <i class="fa-solid fa-trash"></i>
+        </button>
+      </header>
+      <p class="t20b-beneficio">{{beneficio}}.</p>
+      <footer>
+        <span class="t20b-mini"><i class="fa-solid fa-location-dot"></i> {{localNome}}</span>
+        {{#if comodoDanificado}}<span class="t20b-ruim"><i class="fa-solid fa-triangle-exclamation"></i> Cômodo danificado — mobília inerte</span>{{/if}}
+        {{#if escolhaRotulo}}<span class="t20b-mini"><i class="fa-solid fa-check"></i> {{escolhaRotulo}}</span>{{/if}}
+      </footer>
+    </article>
+    {{else}}
+    <p class="notes">Nenhuma mobília. Cada cômodo comporta uma mobília (Sala de Estar: três; gárgulas ficam no exterior) e elas podem ser movidas entre aventuras.</p>
+    {{/each}}
+  </div>
+
+  {{#if homebrewMobilias.length}}
+  <div class="t20b-painel t20b-painel-hb">
+    <h3><i class="fa-solid fa-wand-magic-sparkles"></i> Mobílias homebrew desta base</h3>
+    {{#each homebrewMobilias}}
+    <div class="t20b-historico-linha">
+      <span>★ <strong>{{nome}}</strong> — {{beneficio}}</span>
+      <button type="button" class="t20b-icone t20b-perigo" data-action="excluirHomebrew" data-escopo="mobilia" data-key="{{key}}" title="Excluir definição">
+        <i class="fa-solid fa-trash"></i>
+      </button>
+    </div>
+    {{/each}}
+  </div>
+  {{/if}}
+</section>

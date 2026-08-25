@@ -1,0 +1,105 @@
+<section class="t20d-aba" data-tab="geral">
+  <div class="t20d-colunas">
+
+    <div class="t20d-painel">
+      <h3><i class="fa-solid fa-scroll"></i> Características</h3>
+
+      <div class="t20d-campo">
+        <label>Tipo de domínio</label>
+        <select name="system.tipo">
+          <option value="normal" {{#unless mistico}}selected{{/unless}}>Normal</option>
+          <option value="mistico" {{#if mistico}}selected{{/if}}>Místico</option>
+        </select>
+      </div>
+
+      <div class="t20d-campo">
+        <label>Nível <small>(máx. {{system.nivelMaximo}} pelo terreno)</small></label>
+        <input type="number" name="system.nivel" value="{{system.nivel}}" min="1" max="7">
+      </div>
+
+      <div class="t20d-campo">
+        <label>Terreno</label>
+        <select name="system.terreno.tipo">
+          {{#each terrenos}}<option value="{{this.key}}" {{#if this.selecionado}}selected{{/if}}>{{this.nome}}</option>{{/each}}
+        </select>
+      </div>
+
+      <div class="t20d-flags">
+        <label><input type="checkbox" name="system.terreno.rioOuMar" {{checked system.terreno.rioOuMar}}> Rio ou mar <small>(+1 nível máx.)</small></label>
+        <label><input type="checkbox" name="system.terreno.elementoMistico" {{checked system.terreno.elementoMistico}}> Elemento místico <small>(+1 potencial mágico)</small></label>
+        <label><input type="checkbox" name="system.terreno.racaAfim" {{checked system.terreno.racaAfim}}> Raça afim ao terreno <small>(floresta/subterrâneo: máx. 6)</small></label>
+      </div>
+
+      {{#if mistico}}
+        <div class="t20d-campo">
+          <label>Nível do domínio normal na mesma terra <small>(reduz o potencial mágico)</small></label>
+          <input type="number" name="system.terreno.nivelDominioIrmao" value="{{system.terreno.nivelDominioIrmao}}" min="0" max="7">
+        </div>
+        <p class="t20d-nota"><i class="fa-solid fa-wand-sparkles"></i> Domínio místico: rende <strong>{{system.nivel}} LO</strong> por turno, não possui popularidade, só aceita construções de Religião e Misticismo e concede <strong>+{{system.pmMistico}} PM</strong> ao regente (nível²), mesmo à distância.</p>
+      {{/if}}
+    </div>
+
+    <div class="t20d-painel">
+      <h3><i class="fa-solid fa-crown"></i> Corte & Povo</h3>
+
+      <div class="t20d-campo">
+        <label>Corte <small>(manutenção {{corteAtual.manutencao}} LO/turno{{#if corteAtual.mod}} · {{corteAtual.mod}} em ações{{/if}})</small></label>
+        <select name="system.corte.categoria">
+          {{#each cortes}}<option value="{{this.key}}" {{#if this.selecionado}}selected{{/if}}>{{this.nome}}</option>{{/each}}
+        </select>
+      </div>
+      <p class="t20d-nota">{{corteAtual.desc}}</p>
+
+      {{#each slotsConselheiros}}
+        <div class="t20d-campo">
+          <label>Conselheiro {{this.numero}}</label>
+          <select name="system.corte.conselheiros">
+            <option value="">— vago —</option>
+            {{#each this.opcoes}}<option value="{{this.key}}" {{#if this.selecionado}}selected{{/if}}>{{this.rotulo}}</option>{{/each}}
+          </select>
+        </div>
+      {{/each}}
+      {{#if system.maxConselheiros}}
+        <p class="t20d-nota">Conselheiros concedem o bônus de treinamento em testes de ações de domínio nas perícias que o regente não for treinado.</p>
+      {{/if}}
+
+      {{#unless mistico}}
+        <div class="t20d-campo">
+          <label>Popularidade <small>({{#if popularidadeAtual.mod}}{{popularidadeAtual.mod}} em ações{{else}}sem modificador{{/if}})</small></label>
+          <select name="system.popularidade">
+            {{#each popularidades}}<option value="{{this.key}}" {{#if this.selecionado}}selected{{/if}}>{{this.nome}}</option>{{/each}}
+          </select>
+        </div>
+        <p class="t20d-nota">{{popularidadeAtual.desc}}</p>
+        {{#if system.emRevolta}}
+          <p class="t20d-alerta"><i class="fa-solid fa-fire"></i> <strong>REVOLTA EM CURSO!</strong> Impostos rendem 0 LO e uma construção aleatória é destruída no fim de cada turno. Termina ao alcançar popularidade Impopular ou melhor.</p>
+        {{/if}}
+      {{/unless}}
+    </div>
+  </div>
+
+  <div class="t20d-painel">
+    <h3><i class="fa-solid fa-coins"></i> Tesouro — Histórico de Movimentações</h3>
+    <div class="t20d-resumo-linha">
+      <span>Saldo: <strong>{{system.tesouro.lo}} LO</strong></span>
+      <span>Manutenção prevista: <strong>{{system.manutencaoTotal}} LO/turno</strong> <small>(corte {{system.manutencaoCorte}} + tropas {{system.manutencaoUnidades}})</small></span>
+      <button type="button" data-action="ajustarTesouro"><i class="fa-solid fa-pen"></i> Ajustar</button>
+    </div>
+    {{#if historico.length}}
+      <table class="t20d-tabela t20d-historico">
+        <tr><th>Turno</th><th>Data</th><th>Descrição</th><th>LO</th><th>Saldo</th></tr>
+        {{#each historico}}
+          <tr>
+            <td>{{this.turno}}</td>
+            <td>{{this.data}}</td>
+            <td>{{this.desc}}</td>
+            <td class="{{#if this.positivo}}t20d-bom{{else}}t20d-ruim{{/if}}">{{this.deltaFmt}}</td>
+            <td>{{this.saldo}}</td>
+          </tr>
+        {{/each}}
+      </table>
+    {{else}}
+      <p class="t20d-nota">Nenhuma movimentação registrada. Use a ação Finanças ou cobre impostos para começar.</p>
+    {{/if}}
+  </div>
+</section>

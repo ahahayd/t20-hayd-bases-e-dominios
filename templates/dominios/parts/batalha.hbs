@@ -1,0 +1,50 @@
+<section class="t20d-aba" data-tab="batalha">
+  <div class="t20d-colunas">
+    <div class="t20d-painel">
+      <h3><i class="fa-solid fa-chess-rook"></i> Defensores</h3>
+      <div class="t20d-resumo-batalha">
+        <span>Poder das tropas: <strong>{{system.poderTotal}}</strong></span>
+        <span>Fortificação: <strong>+{{system.fortificacao}}</strong></span>
+      </div>
+      <div class="t20d-campo">
+        <label>Poder de aliados <small>(outros personagens: iniciante 1, veterano 2, campeão 5, lenda 10)</small></label>
+        <input type="number" name="system.batalha.aliadosPoder" value="{{system.batalha.aliadosPoder}}" min="0">
+      </div>
+      <p class="t20d-nota">O regente rola Guerra somando a Fortificação. O lado com maior Poder recebe um bônus igual à diferença entre os Poderes.</p>
+    </div>
+
+    <div class="t20d-painel">
+      <h3><i class="fa-solid fa-skull-crossbones"></i> Atacantes</h3>
+      <div class="t20d-campo">
+        <label>Nome da força inimiga</label>
+        <input type="text" name="system.batalha.inimigoNome" value="{{system.batalha.inimigoNome}}" placeholder="Saqueadores, horda goblinoide…">
+      </div>
+      <div class="t20d-campo">
+        <label>Poder inimigo</label>
+        <input type="number" name="system.batalha.inimigoPoder" value="{{system.batalha.inimigoPoder}}" min="0">
+      </div>
+      <div class="t20d-campo">
+        <label>Guerra do líder inimigo (bônus total)</label>
+        <input type="number" name="system.batalha.inimigoGuerra" value="{{system.batalha.inimigoGuerra}}">
+      </div>
+    </div>
+  </div>
+
+  <div class="t20d-barra-acoes">
+    <span class="t20d-espaco"></span>
+    <button type="button" class="t20d-destaque" data-action="rolarBatalha"><i class="fa-solid fa-swords"></i> Resolver batalha (teste oposto de Guerra)</button>
+  </div>
+
+  <div class="t20d-painel">
+    <h3><i class="fa-solid fa-list-ol"></i> Consequências</h3>
+    <table class="t20d-tabela">
+      <tr><th>Margem</th><th>Resultado</th></tr>
+      <tr><td class="t20d-bom">Vence por 10+</td><td>Vitória total! Invasores repelidos e espólios de 1d6 LO.</td></tr>
+      <tr><td class="t20d-bom">Vence por 5+</td><td>Vitória! Invasores repelidos.</td></tr>
+      <tr><td>Vence</td><td>Invasores repelidos, mas o domínio perde 1d3 unidades.</td></tr>
+      <tr><td class="t20d-ruim">Perde</td><td>Saque: perde 1d3+1 unidades e 2d6 LO.</td></tr>
+      <tr><td class="t20d-ruim">Perde por 5+</td><td>Incêndios: perde 1d4+1 unidades, 3d6 LO e uma construção aleatória.</td></tr>
+      <tr><td class="t20d-ruim">Perde por 10+</td><td>Massacre: perde 2d4+1 unidades, 4d6 LO, uma construção aleatória e um nível.</td></tr>
+    </table>
+  </div>
+</section>

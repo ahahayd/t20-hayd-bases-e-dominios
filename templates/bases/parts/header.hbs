@@ -1,0 +1,15 @@
+<header class="t20b-header">
+  <img class="t20b-retrato" src="{{actor.img}}" alt="{{actor.name}}" data-action="editarImagem" title="Trocar imagem">
+  <div class="t20b-header-info">
+    <input class="t20b-nome" type="text" name="name" value="{{actor.name}}" placeholder="Nome da base">
+    <div class="t20b-linha-status">
+      <span class="t20b-chip" title="{{tipoAtual.desc}}"><i class="fa-solid fa-flag"></i> {{tipoAtual.nome}}</span>
+      <span class="t20b-chip"><i class="fa-solid fa-ruler-combined"></i> {{porteAtual.nome}}</span>
+      <span class="t20b-chip" title="{{segFontes}}"><i class="fa-solid fa-shield-halved"></i> Segurança {{system.segurancaTotal}}</span>
+      <span class="t20b-chip"><i class="fa-solid fa-screwdriver-wrench"></i> Manutenção {{manutencaoFmt}}</span>
+      <button type="button" class="t20b-chip t20b-chip-botao" data-action="ajustarCaixa" title="Caixa do grupo — clique para ajustar">
+        <i class="fa-solid fa-coins"></i> {{caixaFmt}}
+      </button>
+    </div>
+  </div>
+</header>

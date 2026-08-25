@@ -1,0 +1,7 @@
+<nav class="t20b-nav">
+  {{#each abas}}
+  <button type="button" class="{{#if ativa}}ativa{{/if}}" data-action="trocarAba" data-tab="{{id}}">
+    <i class="fa-solid {{icone}}"></i> {{rotulo}}
+  </button>
+  {{/each}}
+</nav>

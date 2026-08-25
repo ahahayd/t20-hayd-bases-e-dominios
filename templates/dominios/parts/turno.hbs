@@ -1,0 +1,94 @@
+<section class="t20d-aba" data-tab="turno">
+
+  <div class="t20d-turno-topo">
+    <div class="t20d-turno-num">
+      <label>Turno</label>
+      <span>{{system.turno.numero}}</span>
+    </div>
+    <div class="t20d-turno-status">
+      <span><i class="fa-solid fa-bolt"></i> Ações restantes: <strong>{{acoesRestantes}}</strong> / {{system.acoesPorTurno}}</span>
+      {{#if system.turno.mod}}<span><i class="fa-solid fa-scale-balanced"></i> Modificador do turno: <strong>{{system.turno.mod}}</strong></span>{{/if}}
+      <span><i class="fa-solid fa-dice-d20"></i> Mod. total em ações: <strong>{{system.modAcoes}}</strong> <small>(corte {{system.modCorte}}{{#unless mistico}} + popularidade {{system.modPopularidade}}{{/unless}}{{#if system.turno.mod}} + turno {{system.turno.mod}}{{/if}})</small></span>
+    </div>
+    <button type="button" class="t20d-destaque" data-action="iniciarTurno" data-tooltip="Um turno ocorre ao fim de cada aventura"><i class="fa-solid fa-hourglass-start"></i> Iniciar novo turno</button>
+  </div>
+
+  {{#if system.turno.bloqueado}}
+    <p class="t20d-alerta"><i class="fa-solid fa-skull"></i> <strong>Mortos vagam pela terra!</strong> Nenhuma ação de domínio pode ser feita neste turno.</p>
+  {{/if}}
+
+  <div class="t20d-etapas">
+    <div class="t20d-etapa {{#if system.turno.eventoRolado}}feita{{/if}}">
+      <header><span class="t20d-num">1</span> Eventos</header>
+      <p>Domínios de nível 3+ rolam 1d% na tabela de eventos{{#if system.eventoMod}} (modificador {{system.eventoMod}}%){{/if}}{{#if system.eventoDuplo}}; o Aqueduto permite rolar duas vezes{{/if}}.</p>
+      <button type="button" data-action="rolarEvento" {{#if system.turno.eventoRolado}}disabled{{/if}}>
+        <i class="fa-solid fa-dice-d20"></i> {{#if system.turno.eventoRolado}}Evento rolado{{else}}Rolar evento{{/if}}
+      </button>
+    </div>
+
+    <div class="t20d-etapa {{#if system.turno.impostosCobrados}}feita{{/if}}">
+      <header><span class="t20d-num">2</span> Impostos</header>
+      {{#if mistico}}
+        <p>Domínio místico: rende {{system.nivel}} LO fixos. A manutenção da corte e das tropas é paga em seguida.</p>
+      {{else}}
+        <p>Baixos: {{impostosNivel.baixos}} · Médios: {{impostosNivel.medios}} · Altos: {{impostosNivel.altos}} LO. Depois, manutenção e ajuste de popularidade.</p>
+      {{/if}}
+      <button type="button" data-action="cobrarImpostos" {{#if system.turno.impostosCobrados}}disabled{{/if}}>
+        <i class="fa-solid fa-coins"></i> {{#if system.turno.impostosCobrados}}Impostos cobrados{{else}}Cobrar impostos{{/if}}
+      </button>
+      {{#if system.caravana.ativa}}
+        <p class="t20d-nota"><i class="fa-solid fa-truck"></i> Caravana em viagem: {{system.caravana.investido}} LO investidos ({{system.caravana.dados}}d4). Resolve-se na cobrança de impostos.</p>
+      {{/if}}
+    </div>
+
+    <div class="t20d-etapa">
+      <header><span class="t20d-num">3</span> Ações de Domínio</header>
+      <div class="t20d-grade-acoes">
+        <button type="button" data-action="acaoDominio" data-acao="governar" data-tooltip="Nobreza (CD 20 + 2× próximo nível) · 5 LO × próximo nível · 1×/turno"><i class="fa-solid fa-arrow-up-right-dots"></i> Governar</button>
+        <button type="button" data-action="acaoDominio" data-acao="construir" data-tooltip="Perícia da categoria (CD 20 + nível) · custo da construção"><i class="fa-solid fa-hammer"></i> Construir</button>
+        <button type="button" data-action="acaoDominio" data-acao="recrutar" data-tooltip="Sem teste · custo por unidade · até o nível do domínio por ação"><i class="fa-solid fa-user-plus"></i> Recrutar tropas</button>
+        <button type="button" data-action="acaoDominio" data-acao="aumentarCorte" data-tooltip="Nobreza (CD 20) · 1 LO"><i class="fa-solid fa-crown"></i> Aumentar corte</button>
+        <button type="button" data-action="acaoDominio" data-acao="festival" data-tooltip="Atuação (CD 20 + nível) · 1 LO · popularidade +1"><i class="fa-solid fa-champagne-glasses"></i> Festival</button>
+        <button type="button" data-action="acaoDominio" data-acao="extorquir" data-tooltip="Intimidação (CD 20 + nível) · +1d6 LO + nível · popularidade –1"><i class="fa-solid fa-hand-holding-dollar"></i> Extorquir</button>
+        <button type="button" data-action="acaoDominio" data-acao="convocar" data-tooltip="Sem teste · 1 LO · 1d6 camponeses até o fim do turno · popularidade –1"><i class="fa-solid fa-people-group"></i> Convocar camponeses</button>
+        <button type="button" data-action="acaoDominio" data-acao="financas" data-tooltip="Nobreza (CD 20) · converte T$ 1.000 ↔ 1 LO com o regente"><i class="fa-solid fa-right-left"></i> Finanças</button>
+        <button type="button" data-action="acaoDominio" data-acao="caravana" data-tooltip="Requer Caravançará · investe até 1d4 LO por nível"><i class="fa-solid fa-truck"></i> Criar caravana</button>
+      </div>
+    </div>
+  </div>
+
+  {{#if pendencias.length}}
+    <div class="t20d-painel">
+      <h3><i class="fa-solid fa-triangle-exclamation"></i> Situações Pendentes</h3>
+      <ul class="t20d-lista-cartoes">
+        {{#each pendencias}}
+          <li class="t20d-cartao pendencia">
+            <div class="t20d-cartao-info">
+              <strong>{{this.nome}}{{#if this.persistente}} <small>(persistente)</small>{{/if}}</strong>
+              <span>{{this.desc}}</span>
+            </div>
+            <div class="t20d-cartao-botoes">
+              {{#each this.botoesPericia}}
+                <button type="button" data-action="resolverEvento" data-id="{{../id}}" data-pericia="{{this.key}}"
+                        data-tooltip="Gasta uma ação de domínio (CD {{../cd}})">
+                  <i class="fa-solid fa-dice-d20"></i> {{this.rotulo}}
+                </button>
+              {{/each}}
+              {{#if this.ehBandidos}}
+                <button type="button" data-action="prepararBatalhaBandidos" data-tooltip="Rola o Poder e o líder dos bandidos e prepara a aba Batalha">
+                  <i class="fa-solid fa-swords"></i> Batalhar
+                </button>
+              {{/if}}
+              <a data-action="resolverEventoManual" data-id="{{this.id}}" data-tooltip="Marcar como resolvido (cena jogada / decisão do mestre)"><i class="fa-solid fa-check"></i></a>
+            </div>
+          </li>
+        {{/each}}
+      </ul>
+    </div>
+  {{/if}}
+
+  <div class="t20d-barra-acoes rodape">
+    <span class="t20d-espaco"></span>
+    <button type="button" data-action="encerrarTurno" data-tooltip="Aplica as consequências das pendências, bandidos e revoltas; dispersa camponeses"><i class="fa-solid fa-flag-checkered"></i> Encerrar turno</button>
+  </div>
+</section>

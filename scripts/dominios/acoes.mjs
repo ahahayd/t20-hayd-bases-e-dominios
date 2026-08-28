@@ -10,6 +10,7 @@ import {
   obterConstrucoes
 } from "./catalogo.mjs";
 import { obterRegente, sincronizarEfeitos } from "./efeitos.mjs";
+import { htmlDesfechoObra } from "../correcao-obras.mjs";
 
 const { DialogV2 } = foundry.applications.api;
 
@@ -28,7 +29,7 @@ function fmtLO(v) {
 }
 
 /** Cria um cartão de chat estilizado do módulo. */
-export async function cartao(dominio, titulo, corpo, { rolls = [], subtitulo = "", rollMode = null } = {}) {
+export async function cartao(dominio, titulo, corpo, { rolls = [], subtitulo = "", rollMode = null, flagsModulo = {} } = {}) {
   const content = `
     <div class="t20d-chat${temaHayd() ? " tema-hayd" : ""}"${temaHayd() ? ` style="--t20d-destaque: ${corDominio(dominio)}"` : ""}>
       <header class="t20d-chat-header">
@@ -44,7 +45,7 @@ export async function cartao(dominio, titulo, corpo, { rolls = [], subtitulo = "
     content,
     rolls,
     speaker: { alias: dominio.name },
-    flags: { [MODULO]: { dominio: dominio.uuid } }
+    flags: { [MODULO]: { dominio: dominio.uuid, ...flagsModulo } }
   };
   if (rollMode) ChatMessage.applyRollMode(dados, rollMode);
   return ChatMessage.create(dados);
@@ -271,7 +272,7 @@ function htmlResultadoTeste(t, nomePericia) {
   if (!t) return "";
   const classe = t.sucesso ? "t20d-bom" : "t20d-ruim";
   const texto = t.sucesso ? "SUCESSO" : "FALHA";
-  return `<p>Teste de <strong>${nomePericia}</strong> (${t.regente.name}): <strong>${t.total}</strong> vs CD ${t.cd} — <span class="${classe}"><strong>${texto}</strong></span></p>`;
+  return `<p>Teste de <strong>${nomePericia}</strong> (${t.regente.name}): <strong>${t.total}</strong> vs CD ${t.cd} — <span class="${classe}" data-t20bd-resultado-teste><strong>${texto}</strong></span></p>`;
 }
 
 /* ================================================================== */
@@ -540,21 +541,26 @@ export async function acaoConstruir(dominio, key, evento = null) {
   const t = await prep.rolar();
   if (!t) return;
   let corpo = htmlResultadoTeste(t, cat.nome);
+  const entrada = {
+    id: foundry.utils.randomID(), key,
+    efeitoAtivo: !!def.efeito, escolha: null,
+    turno: dominio.system.turno.numero
+  };
+  const obra = {
+    tipo: "dominio", atorUuid: dominio.uuid, nome: def.nome,
+    sucesso: t.sucesso, configuravel: !!def.efeito?.escolha,
+    entrada
+  };
   if (t.sucesso) {
     const construcoes = [...dominio.system.construcoes];
-    construcoes.push({
-      id: foundry.utils.randomID(), key,
-      efeitoAtivo: !!def.efeito, escolha: null,
-      turno: dominio.system.turno.numero
-    });
+    construcoes.push(entrada);
     await dominio.update({ "system.construcoes": construcoes });
-    corpo += `<p class="t20d-bom"><strong>${def.nome}</strong> é erguida no domínio!</p>`;
-    if (def.efeito?.escolha) corpo += `<p>Configure a escolha da construção na aba Construções (ícone de engrenagem).</p>`;
     if (game.settings.get(MODULO, "dominiosSincronizarAuto")) await sincronizarEfeitos(dominio, { silencioso: true });
-  } else {
-    corpo += `<p>A obra desmorona antes de ficar pronta — o ouro foi perdido.</p>`;
   }
-  await cartao(dominio, "Ação: Construir", corpo, { rolls: [t.roll], rollMode: t.rollMode });
+  corpo += htmlDesfechoObra(obra);
+  await cartao(dominio, "Ação: Construir", corpo, {
+    rolls: [t.roll], rollMode: t.rollMode, flagsModulo: { obra }
+  });
 }
 
 export async function acaoRecrutar(dominio, escolhas) {

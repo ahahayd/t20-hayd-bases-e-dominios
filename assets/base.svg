@@ -1,14 +1,1 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
-  <rect width="100" height="100" fill="#14111a"/>
-  <g fill="#960505">
-    <path d="M50 12 L88 42 L82 42 L82 48 L18 48 L18 42 L12 42 Z"/>
-    <rect x="22" y="48" width="56" height="38"/>
-    <rect x="66" y="18" width="8" height="16"/>
-  </g>
-  <path d="M44 86 L44 66 A6 6 0 0 1 56 66 L56 86 Z" fill="#14111a"/>
-  <g fill="#e8e4dc" opacity="0.85">
-    <rect x="28" y="56" width="8" height="9"/>
-    <rect x="64" y="56" width="8" height="9"/>
-    <path d="M67 14 l6 2 -6 2 Z"/>
-  </g>
-</svg>
+<svg style="height: 512px; width: 512px;" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><path d="M0 0h512v512H0z" fill="#000" fill-opacity="1"></path><g class="" style="" transform="translate(0,0)"><path d="M256 32 32 240h64v240h320V240h64L256 32zm-3.1 145.5 3 .1c15.6 0 30.1 17.1 30.1 40.3 0 11.6-3.9 22-9.7 29.3l-7.3 8.9 11.5 1.8c8.8 1.4 14.8 5.5 19.8 12.3 5 6.7 8.6 16.1 11.1 27 4.3 19.9 4.6 44.4 4.6 65.9h-25l-6.3 96.4c-17.6 4.1-37.1 4.2-55.3 0l-7.2-96.4H196c.2-21.3 1.2-45.4 6-65.1 2.6-10.9 6.4-20.3 11.4-27.1 4.9-6.8 10.7-10.9 18.5-12.5l11.2-2.1-7.2-8.6c-6.1-7.4-10.3-18-10.3-29.8 0-21.8 13-38.5 27.3-40.4z" fill="#fff" fill-opacity="1"></path></g></svg>

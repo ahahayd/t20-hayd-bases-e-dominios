@@ -19,9 +19,16 @@ export const MODULO = "t20-hayd-bases-e-dominios";
 /* Tema (integração com o t20-hayd-ui)                                */
 /* ================================================================== */
 
-/** O tema dark só é aplicado com o módulo t20-hayd-ui ativo. */
+/** O tema dark só é aplicado quando a interface do t20-hayd-ui está ativa. */
 export function temaHayd() {
-  return game.modules?.get("t20-hayd-ui")?.active === true;
+  if (game.modules?.get("t20-hayd-ui")?.active !== true) return false;
+  try {
+    if (game.settings.get("t20-hayd-ui", "enabled") === false) return false;
+    const chave = "t20-hayd-ui.estiloInterface";
+    if (game.settings.settings.has(chave)
+      && game.settings.get("t20-hayd-ui", "estiloInterface") === false) return false;
+  } catch (_err) { /* compatibilidade com versões antigas do tema */ }
+  return true;
 }
 
 /** Cor padrão do t20-hayd-ui (alterável nas configurações do mundo). */
@@ -42,17 +49,29 @@ function corCSSDoUsuario(user) {
   return (typeof s === "string" && s.startsWith("#")) ? s : null;
 }
 
+function normalizarHex(cor) {
+  if (typeof cor !== "string") return null;
+  const valor = cor.trim().toLowerCase();
+  if (/^#[0-9a-f]{6}$/.test(valor)) return valor;
+  if (/^#[0-9a-f]{3}$/.test(valor)) {
+    return `#${valor[1]}${valor[1]}${valor[2]}${valor[2]}${valor[3]}${valor[3]}`;
+  }
+  return null;
+}
+
 /**
  * Cor de destaque de um ator seguindo as regras do t20-hayd-ui:
- * modo "padrao" → cor padrão configurada; senão, cor do primeiro dono
- * jogador (ordem alfabética); sem dono jogador → cor padrão.
+ * modo "custom" → cor escolhida para esta ficha;
+ * modo "padrao" → cor padrão configurada;
+ * modo "auto" → cor do primeiro dono jogador (ordem alfabética).
  */
 export function corDestaqueAtor(ator) {
   if (!ator) return corPadraoTema();
   const bruto = ator.getFlag?.("t20-hayd-ui", "configCor");
-  const modo = (bruto && typeof bruto === "object")
-    ? (bruto.mode === "custom" ? "padrao" : "auto")
-    : (bruto ?? "auto");
+  if (bruto && typeof bruto === "object" && bruto.mode === "custom") {
+    return normalizarHex(bruto.cor) ?? corPadraoTema();
+  }
+  const modo = bruto === "padrao" ? "padrao" : "auto";
   if (modo !== "padrao") {
     const donos = game.users
       .filter(u => !u.isGM && ator.testUserPermission?.(u, "OWNER"))

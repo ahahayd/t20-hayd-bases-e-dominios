@@ -10,6 +10,12 @@ import { MODULO, TIPOS, obterComodos, obterMobilias, MODOS_EFEITO } from "./cata
 const { ADD, OVERRIDE } = MODOS_EFEITO;
 const ICONE = `modules/${MODULO}/assets/base.svg`;
 
+/** Chave determinística: persiste a preferência do morador mesmo que o
+ * ActiveEffect seja apagado e recriado durante uma sincronização. */
+function idBeneficio(origem, nome, tipo, detalhes) {
+  return `${origem}|${tipo}|${nome}|${JSON.stringify(detalhes)}`;
+}
+
 /** Resolve um residente registrado para o documento Actor. */
 export async function obterMorador(uuid) {
   if (!uuid) return null;
@@ -23,6 +29,8 @@ export async function obterMorador(uuid) {
 }
 
 function novoEfeito(base, nome, descricao, changes, origem) {
+  const beneficioId = idBeneficio(origem, nome, "passivo",
+    changes.map(c => ({ key: c.key, mode: c.mode })));
   return {
     name: `Base: ${nome}`,
     img: ICONE,
@@ -31,7 +39,7 @@ function novoEfeito(base, nome, descricao, changes, origem) {
     description: `<p>${descricao}</p><p><em>Benefício da base ${base.name}.</em></p>`,
     changes,
     flags: {
-      [MODULO]: { baseUuid: base.uuid, origem },
+      [MODULO]: { baseUuid: base.uuid, origem, beneficioId },
       tormenta20: { onuse: false }
     }
   };
@@ -52,6 +60,11 @@ function novoEfeitoUso(base, nome, descricao, uso, origem) {
   const t20 = { onuse: true, durationScene: false, custo: uso.custo ?? "" };
   for (const esc of uso.escopos ?? []) t20[ESCOPOS_USO[esc] ?? esc] = true;
   if (uso.items) t20.items = uso.items;
+  const changes = uso.changes?.length ? foundry.utils.deepClone(uso.changes) : [];
+  const beneficioId = idBeneficio(origem, nome, "uso", {
+    changes: changes.map(c => ({ key: c.key, mode: c.mode })),
+    escopos: uso.escopos ?? [], items: uso.items ?? "", custo: uso.custo ?? ""
+  });
   return {
     name: `Base: ${nome}`,
     img: ICONE,
@@ -59,9 +72,9 @@ function novoEfeitoUso(base, nome, descricao, uso, origem) {
     transfer: false,
     origin: base.uuid,
     description: `<p>${descricao}.</p><p><em>Efeito de uso da base ${base.name} — marque-o na janela de rolagem quando se aplicar.</em></p>`,
-    changes: uso.changes?.length ? foundry.utils.deepClone(uso.changes) : [],
+    changes,
     flags: {
-      [MODULO]: { baseUuid: base.uuid, origem },
+      [MODULO]: { baseUuid: base.uuid, origem, beneficioId },
       tormenta20: t20
     }
   };
@@ -212,7 +225,9 @@ export async function sincronizarEfeitos(base, { silencioso = false } = {}) {
     if (!ator) return null;
     const removidos = await limparEfeitosDe(base, ator);
     if (res.receberEfeitos === false) return { removidos, criados: 0, conta: false };
-    const efeitos = montarEfeitosPara(base, res.uuid);
+    const desativados = new Set(res.beneficiosDesativados ?? []);
+    const efeitos = montarEfeitosPara(base, res.uuid)
+      .filter(efeito => !desativados.has(efeito.flags?.[MODULO]?.beneficioId));
     if (efeitos.length) await ator.createEmbeddedDocuments("ActiveEffect", efeitos);
     return { removidos, criados: efeitos.length, conta: true };
   }));

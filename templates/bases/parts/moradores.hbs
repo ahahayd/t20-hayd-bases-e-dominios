@@ -1,5 +1,19 @@
 <section class="t20b-aba" data-tab="moradores">
-  <p class="notes"><i class="fa-solid fa-hand-pointer"></i> Arraste atores para esta ficha para adicioná-los como moradores. Os benefícios da base (tipo, cômodos e mobílias) são distribuídos como Efeitos Ativos a quem estiver com o interruptor ligado.</p>
+  <p class="notes"><i class="fa-solid fa-hand-pointer"></i> Arraste atores para esta ficha ou selecione manualmente um personagem abaixo. Os benefícios da base (tipo, cômodos e mobílias) são distribuídos como Efeitos Ativos a quem estiver com o interruptor ligado.</p>
+  <div class="t20b-adicionar-morador">
+    <select id="t20b-morador-manual" aria-label="Selecionar personagem para adicionar como morador">
+      <option value="">— selecionar personagem —</option>
+      {{#each personagensDisponiveis}}
+      <option value="{{uuid}}">{{nome}}</option>
+      {{/each}}
+    </select>
+    <button type="button" class="t20b-botao" data-action="adicionarMoradorManual">
+      <i class="fa-solid fa-user-plus"></i> Adicionar morador
+    </button>
+  </div>
+  {{#unless personagensDisponiveis.length}}
+  <p class="notes">Todos os personagens disponíveis já são moradores desta base.</p>
+  {{/unless}}
   <div class="t20b-cartoes">
     {{#each moradores}}
     <article class="t20b-cartao t20b-morador {{#unless recebe}}t20b-inativo{{/unless}}">
@@ -7,11 +21,10 @@
         <img class="t20b-morador-img" src="{{img}}" alt="">
         <strong>{{nome}}</strong>
         <span class="t20b-flex"></span>
-        <span class="t20b-mini" title="Efeitos automatizados que este morador recebe">{{qtdEfeitos}} <i class="fa-solid fa-bolt"></i></span>
         <button type="button" class="t20b-icone" data-action="alternarMorador" data-uuid="{{uuid}}" title="{{#if recebe}}Parar de receber{{else}}Voltar a receber{{/if}} benefícios">
           <i class="fa-solid {{#if recebe}}fa-toggle-on{{else}}fa-toggle-off{{/if}}"></i>
         </button>
-        <button type="button" class="t20b-icone" data-action="verEfeitosMorador" data-uuid="{{uuid}}" title="Ver os benefícios calculados">
+        <button type="button" class="t20b-icone" data-action="verEfeitosMorador" data-uuid="{{uuid}}" title="Configurar benefícios individuais">
           <i class="fa-solid fa-list-check"></i>
         </button>
         {{#if existe}}

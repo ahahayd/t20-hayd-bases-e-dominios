@@ -11,4 +11,5 @@
  */
 import "./bases/main.mjs";
 import "./dominios/main.mjs";
+import "./correcao-obras.mjs";
 import "./migracao.mjs";

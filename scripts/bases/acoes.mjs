@@ -9,6 +9,7 @@ import {
   obterComodos, obterMobilias, labelPericia, temaHayd
 } from "./catalogo.mjs";
 import { sincronizarEfeitos, obterMorador } from "./efeitos.mjs";
+import { htmlDesfechoObra } from "../correcao-obras.mjs";
 
 const { DialogV2 } = foundry.applications.api;
 
@@ -26,7 +27,7 @@ export function fmtTS(v) {
   return `T$ ${Number(v).toLocaleString("pt-BR")}`;
 }
 
-export async function cartao(base, titulo, corpo, { rolls = [] } = {}) {
+export async function cartao(base, titulo, corpo, { rolls = [], flagsModulo = {} } = {}) {
   const content = `
     <div class="t20b-chat${temaHayd() ? " tema-hayd" : ""}">
       <header class="t20b-chat-header">
@@ -38,7 +39,7 @@ export async function cartao(base, titulo, corpo, { rolls = [] } = {}) {
   return ChatMessage.create({
     content, rolls,
     speaker: { alias: base.name },
-    flags: { [MODULO]: { base: base.uuid } }
+    flags: { [MODULO]: { base: base.uuid, ...flagsModulo } }
   });
 }
 
@@ -197,7 +198,7 @@ function htmlTeste(t, pericia) {
   const conta = t.bonus
     ? `<strong>${t.roll.total}</strong> + ${t.bonus} (ajuda) = <strong>${t.total}</strong>`
     : `<strong>${t.total}</strong>`;
-  return `<p>Teste de <strong>${labelPericia(pericia)}</strong> (${t.morador.name}): ${conta} vs CD ${t.cd} — <span class="${cls}"><strong>${t.sucesso ? "SUCESSO" : "FALHA"}</strong></span></p>`;
+  return `<p>Teste de <strong>${labelPericia(pericia)}</strong> (${t.morador.name}): ${conta} vs CD ${t.cd} — <span class="${cls}" data-t20bd-resultado-teste><strong>${t.sucesso ? "SUCESSO" : "FALHA"}</strong></span></p>`;
 }
 
 /* ================================================================== */
@@ -324,20 +325,25 @@ export async function acaoConstruirComodo(base, key) {
   const t = await executarTeste(base, dados, { rotulo: `Construir ${def.nome}` });
   if (!t) return;
   let corpo = htmlTeste(t, dados.pericia);
+  const entrada = {
+    id: foundry.utils.randomID(), key,
+    danificado: false, ativo: true, escolha: null, suiteResidentes: []
+  };
+  const obra = {
+    tipo: "base", atorUuid: base.uuid, nome: def.nome,
+    sucesso: t.sucesso, configuravel: !!(def.escolha || def.efeito?.escolha),
+    entrada, mobiliasDesvinculadas: []
+  };
   if (t.sucesso) {
     const comodos = [...base.system.comodos];
-    comodos.push({
-      id: foundry.utils.randomID(), key,
-      danificado: false, ativo: true, escolha: null, suiteResidentes: []
-    });
+    comodos.push(entrada);
     await base.update({ "system.comodos": comodos });
-    corpo += `<p class="t20b-bom"><strong>${def.nome}</strong> é construído na base!</p>`;
-    if (def.escolha || def.efeito?.escolha) corpo += `<p>Configure o cômodo pela engrenagem na aba Cômodos.</p>`;
     if (game.settings.get(MODULO, "basesSincronizarAuto")) await sincronizarEfeitos(base, { silencioso: true });
-  } else {
-    corpo += `<p>A obra fracassa e o valor foi gasto.</p>`;
   }
-  await cartao(base, "Ação: Construir Cômodo", corpo, { rolls: [t.roll] });
+  corpo += htmlDesfechoObra(obra);
+  await cartao(base, "Ação: Construir Cômodo", corpo, {
+    rolls: [t.roll], flagsModulo: { obra }
+  });
 }
 
 export async function acaoRepararComodo(base, idComodo) {

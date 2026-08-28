@@ -12,7 +12,14 @@ export const MODULO = "t20-hayd-bases-e-dominios";
  * dark glassmorphic (classe .tema-hayd); sem ele, o visual padrão do Foundry.
  */
 export function temaHayd() {
-  return game.modules?.get("t20-hayd-ui")?.active === true;
+  if (game.modules?.get("t20-hayd-ui")?.active !== true) return false;
+  try {
+    if (game.settings.get("t20-hayd-ui", "enabled") === false) return false;
+    const chave = "t20-hayd-ui.estiloInterface";
+    if (game.settings.settings.has(chave)
+      && game.settings.get("t20-hayd-ui", "estiloInterface") === false) return false;
+  } catch (_err) { /* compatibilidade com versões antigas do tema */ }
+  return true;
 }
 
 /**
@@ -36,32 +43,36 @@ function corCSSDoUsuario(user) {
   return (typeof s === "string" && s.startsWith("#")) ? s : null;
 }
 
+function normalizarHex(cor) {
+  if (typeof cor !== "string") return null;
+  const valor = cor.trim().toLowerCase();
+  if (/^#[0-9a-f]{6}$/.test(valor)) return valor;
+  if (/^#[0-9a-f]{3}$/.test(valor)) {
+    return `#${valor[1]}${valor[1]}${valor[2]}${valor[2]}${valor[3]}${valor[3]}`;
+  }
+  return null;
+}
+
 /**
- * Cor de destaque do domínio: a mesma cor que o t20-hayd-ui daria à
- * ficha do REGENTE (modo "padrao" → cor padrão; senão a cor do primeiro
- * dono jogador do regente). Sem regente, usa a cor padrão configurada.
+ * Cor de destaque individual do domínio, seguindo o t20-hayd-ui:
+ * modo "custom" → cor escolhida para esta ficha;
+ * modo "padrao" → cor padrão configurada;
+ * modo "auto" → cor do primeiro dono jogador do domínio.
  */
 export function corDominio(dominio) {
-  try {
-    const uuid = dominio?.system?.regenteUuid;
-    const regente = uuid ? fromUuidSync(uuid) : null;
-    if (regente) {
-      const bruto = regente.getFlag?.("t20-hayd-ui", "configCor");
-      const modo = (bruto && typeof bruto === "object")
-        ? (bruto.mode === "custom" ? "padrao" : "auto")
-        : (bruto ?? "auto");
-      if (modo !== "padrao") {
-        const donos = game.users
-          .filter(u => !u.isGM && regente.testUserPermission?.(u, "OWNER"))
-          .sort((a, b) => (a.name ?? "").localeCompare(b.name ?? "", "pt-BR"));
-        for (const dono of donos) {
-          const c = corCSSDoUsuario(dono);
-          if (c) return c;
-        }
-      }
+  if (!dominio) return corPadraoTema();
+  const bruto = dominio.getFlag?.("t20-hayd-ui", "configCor");
+  if (bruto && typeof bruto === "object" && bruto.mode === "custom") {
+    return normalizarHex(bruto.cor) ?? corPadraoTema();
+  }
+  if (bruto !== "padrao") {
+    const donos = game.users
+      .filter(u => !u.isGM && dominio.testUserPermission?.(u, "OWNER"))
+      .sort((a, b) => (a.name ?? "").localeCompare(b.name ?? "", "pt-BR"));
+    for (const dono of donos) {
+      const c = corCSSDoUsuario(dono);
+      if (c) return c;
     }
-  } catch (err) {
-    console.debug(`${MODULO} | falha ao resolver a cor do regente`, err);
   }
   return corPadraoTema();
 }

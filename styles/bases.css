@@ -7,7 +7,7 @@
    2) TEMA HAYD — visual dark glassmorphic (cantos retos), aplicado
       SOMENTE quando o módulo t20-hayd-ui está ativo (classe
       .tema-hayd adicionada via JS). A cor de destaque segue o
-      t20-hayd-ui (cor do dono / cor padrão configurável) e é
+      t20-hayd-ui (cor do dono / personalizada / padrão configurável) e é
       definida inline em --t20b-destaque pela ficha.
    ================================================================ */
 
@@ -88,6 +88,27 @@ section.t20b-aba.ativa { display: block; }
 }
 .t20b-painel h3 i { color: var(--t20b-destaque); margin-right: 5px; }
 .t20b-painel-hb { margin-top: 10px; }
+.t20b-aviso-regras {
+  margin-top: 12px;
+  padding: 9px 12px;
+  border-top: 1px solid var(--t20b-borda);
+  color: var(--t20b-texto-suave);
+  font-size: 0.85em;
+  text-align: center;
+}
+
+/* Seletor compartilhado de cor (fichas ApplicationV2). */
+.t20bd-cor-opcoes { display: flex; flex-direction: column; gap: 10px; }
+.t20bd-cor-opcoes > p { margin: 0 0 4px; }
+.t20bd-cor-opcoes > label {
+  display: flex; align-items: flex-start; gap: 8px;
+  padding: 8px; border: 1px solid var(--color-fieldset-border); border-radius: 4px;
+}
+.t20bd-cor-opcoes > label span { display: flex; flex-direction: column; gap: 2px; }
+.t20bd-cor-opcoes > label small { color: var(--color-text-secondary); }
+.t20bd-cor-campos { display: flex; gap: 8px; padding-left: 32px; }
+.t20bd-cor-campos input[type="color"] { flex: 0 0 48px; }
+.t20bd-cor-campos input[type="text"] { flex: 1; }
 
 /* Formulários (somente layout; aparência dos campos é a do núcleo) */
 .tormenta20-bases .form-group { display: flex; flex-direction: column; gap: 3px; margin: 0; }
@@ -139,6 +160,14 @@ section.t20b-aba.ativa { display: block; }
 .t20b-mini i { color: var(--t20b-destaque); margin-right: 3px; }
 
 .t20b-morador header { align-items: center; }
+.t20b-adicionar-morador {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 8px 0 10px;
+}
+.t20b-adicionar-morador select { flex: 1; }
+.t20b-adicionar-morador .t20b-botao { flex: 0 0 auto; }
 .t20b-morador-img {
   width: 34px; height: 34px; object-fit: cover;
   border: 1px solid var(--t20b-borda); border-radius: 3px;
@@ -167,6 +196,20 @@ section.t20b-aba.ativa { display: block; }
 .t20b-tabela th { background: color-mix(in srgb, var(--t20b-destaque) 18%, transparent); }
 
 .t20b-lista { margin: 0; padding-left: 18px; font-size: 0.86em; display: flex; flex-direction: column; gap: 4px; }
+
+.t20b-beneficios-lista {
+  list-style: none; margin: 0; padding: 0;
+  display: flex; flex-direction: column; gap: 6px;
+  max-height: 420px; overflow-y: auto;
+}
+.t20b-beneficios-lista li {
+  padding: 8px; border: 1px solid var(--t20b-borda);
+  border-radius: 4px; background: rgba(128, 128, 128, 0.08);
+}
+.t20b-beneficios-lista label { display: flex; align-items: flex-start; gap: 8px; }
+.t20b-beneficios-lista input { flex: 0 0 auto; margin-top: 3px; }
+.t20b-beneficio-info { display: flex; min-width: 0; flex-direction: column; gap: 2px; }
+.t20b-beneficio-info em, .t20b-beneficio-info small { color: var(--t20b-texto-suave); }
 
 /* Rateio da manutenção entre personagens */
 .t20b-rateio { display: flex; flex-direction: column; gap: 8px; }
@@ -244,6 +287,9 @@ section.t20b-aba.ativa { display: block; }
 .t20b-chat .t20b-bom { color: #1d7a24; }
 .t20b-chat .t20b-ruim { color: #a8322a; }
 .t20b-chat .t20b-lista { padding-left: 16px; }
+.t20bd-controle-obra { margin-top: 7px; padding-top: 7px; border-top: 1px solid rgba(128, 128, 128, 0.3); }
+.t20bd-controle-obra button { width: 100%; }
+.t20bd-resultado-alterado { margin-top: 6px !important; font-size: 0.85em; opacity: 0.8; }
 
 /* ------------------------- Responsivo ------------------------------- */
 @media (max-width: 760px) {

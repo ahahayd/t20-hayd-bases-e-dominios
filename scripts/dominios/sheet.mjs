@@ -11,6 +11,7 @@ import {
 import * as Acoes from "./acoes.mjs";
 import { sincronizarEfeitos, removerEfeitos, obterRegente } from "./efeitos.mjs";
 import { criarTabelas } from "./tabelas.mjs";
+import { abrirSeletorCor } from "../cor-ficha.mjs";
 
 const { HandlebarsApplicationMixin } = foundry.applications.api;
 const { ActorSheetV2 } = foundry.applications.sheets;
@@ -29,6 +30,7 @@ export class DominioSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       trocarAba: DominioSheet.#trocarAba,
       editarImagem: DominioSheet.#editarImagem,
       abrirRegente: DominioSheet.#abrirRegente,
+      configurarCor: DominioSheet.#configurarCor,
       removerRegente: DominioSheet.#removerRegente,
       sincronizarEfeitos: DominioSheet.#sincronizarEfeitos,
       removerEfeitos: DominioSheet.#removerEfeitos,
@@ -63,11 +65,22 @@ export class DominioSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     unidades:    { template: T("parts/unidades.hbs") },
     turno:       { template: T("parts/turno.hbs") },
     batalha:     { template: T("parts/batalha.hbs") },
-    diario:      { template: T("parts/diario.hbs") },
-    ajuda:       { template: T("parts/ajuda.hbs") }
+    diario:      { template: T("parts/diario.hbs") }
   };
 
   tabGroups = { primary: "geral" };
+
+  _getHeaderControls() {
+    const controles = super._getHeaderControls();
+    if (temaHayd() && (this.actor.isOwner || game.user.isGM)) {
+      controles.unshift({
+        icon: "fa-solid fa-palette",
+        label: "Cor da Ficha",
+        action: "configurarCor"
+      });
+    }
+    return controles;
+  }
 
   /* ---------------------------------------------------------------- */
   async _prepareContext(options) {
@@ -83,8 +96,7 @@ export class DominioSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       { id: "unidades", rotulo: "Tropas", icone: "fa-shield-halved" },
       { id: "turno", rotulo: "Turno", icone: "fa-hourglass-half" },
       { id: "batalha", rotulo: "Batalha", icone: "fa-swords" },
-      { id: "diario", rotulo: "Diário", icone: "fa-book-open" },
-      { id: "ajuda", rotulo: "Regras", icone: "fa-circle-question" }
+      { id: "diario", rotulo: "Diário", icone: "fa-book-open" }
     ].map(a => ({ ...a, ativa: this.tabGroups.primary === a.id }));
 
     /* Construções instaladas, com dados do catálogo (oficial + homebrews) */
@@ -187,8 +199,8 @@ export class DominioSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     super._onRender(context, options);
     const tema = temaHayd();
     this.element.classList.toggle("tema-hayd", tema);
-    /* Cor de destaque: segue a ficha do regente (t20-hayd-ui) ou a cor
-     * padrão configurável do t20-hayd-ui. */
+    /* Cor de destaque individual: automática, personalizada ou padrão,
+     * conforme a configuração salva pelo t20-hayd-ui nesta ficha. */
     if (tema) this.element.style.setProperty("--t20d-destaque", corDominio(this.actor));
     else this.element.style.removeProperty("--t20d-destaque");
     this.#ativarAba(this.tabGroups.primary);
@@ -231,6 +243,8 @@ export class DominioSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
   /* ------------------------- Ações da ficha ----------------------- */
 
   static #trocarAba(event, alvo) { this.#ativarAba(alvo.dataset.tab); }
+
+  static async #configurarCor() { await abrirSeletorCor(this.actor); }
 
   static #editarImagem(event, alvo) {
     const fp = new foundry.applications.apps.FilePicker.implementation({

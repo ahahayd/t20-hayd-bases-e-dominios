@@ -226,6 +226,13 @@ section.t20d-aba.ativa { display: flex; }
   padding-bottom: 6px;
 }
 .t20d-painel h3 i { margin-right: 6px; }
+.t20d-aviso-regras {
+  padding: 9px 12px 0;
+  border-top: 1px solid var(--t20d-borda);
+  color: var(--t20d-texto-fraco);
+  font-size: 11px;
+  text-align: center;
+}
 
 .t20d-campo { margin-bottom: 8px; }
 .t20d-campo label {

@@ -38,7 +38,7 @@ Novo tipo de ator "Base": portes, tipos, segurança, manutenção, cômodos, mob
 
 ### Moradores
 
-Arraste os atores dos personagens (e parceiros) para a ficha da base. Cada morador tem um interruptor individual para receber ou não os benefícios, que são aplicados como Efeitos Ativos nas fichas — bônus de perícia, PV/PM, Defesa, carga e afins. Benefícios narrativos aparecem como lembretes.
+Arraste os atores dos personagens (e parceiros) para a ficha da base ou use o seletor manual da aba **Moradores**, que lista os atores do tipo Personagem disponíveis. Cada morador tem um interruptor geral e um botão de lista para habilitar ou desabilitar cada benefício automatizado individualmente. Os benefícios são aplicados como Efeitos Ativos nas fichas — bônus de perícia, PV/PM, Defesa, carga e afins. Benefícios narrativos aparecem como lembretes.
 
 ### Aba Base
 
@@ -47,6 +47,8 @@ Defina o tipo e o porte, acompanhe a **segurança** (composta automaticamente pe
 ### Cômodos e mobílias
 
 Catálogos completos das Tabelas 3-7 e 3-8, com validação de pré-requisitos (porte, tipo, cômodos), custo e teste de construção automatizado. Suítes são repetíveis com atribuição de moradores, mobílias respeitam os locais válidos e a capacidade de cada cômodo, e os casos especiais (Ídolo Dourado, Mapa-Múndi, Bigorna, Baú Reforçado…) são automatizados.
+
+Nos cartões de testes de construção de Bases e Domínios, o mestre pode alterar o resultado entre sucesso e falha depois da rolagem. A correção adiciona ou remove a obra correspondente sem cobrar novamente o custo.
 
 ### Entre aventuras
 
@@ -62,7 +64,7 @@ Novo tipo de ator "Domínio": turnos de domínio, impostos, construções, unida
 
 ### Primeiros passos
 
-Arraste o ator do personagem para a ficha do domínio para vinculá-lo como regente. Na aba **Domínio**, configure terreno, corte, conselheiros e popularidade; adicione os lingotes iniciais clicando no tesouro (1 LO = T$ 1.000). Na aba **Regras**, o Mestre pode criar as RollTables de eventos no mundo.
+Arraste o ator do personagem para a ficha do domínio para vinculá-lo como regente. Na aba **Domínio**, configure terreno, corte, conselheiros e popularidade; adicione os lingotes iniciais clicando no tesouro (1 LO = T$ 1.000). Para consultar as regras completas, use o suplemento *Heróis de Arton*.
 
 ### Turno de domínio
 
@@ -84,9 +86,14 @@ Crie construções personalizadas (★) com custo, categoria, pré-requisitos e 
 
 - A sincronização dos efeitos com moradores/regente é automática por padrão em cada subsistema (configurável separadamente) e pode ser disparada manualmente; ao remover um morador, excluir a base ou excluir o domínio, os efeitos são limpos das fichas correspondentes.
 - Os testes de perícia de Domínios abrem a janela de configuração de uso do próprio sistema (bônus situacional, 2d20, modo de rolagem); cancelar a janela cancela a ação sem gastar nada, e Shift pula a janela.
+- Com o **t20-hayd-ui** ativo, cada ficha de Base ou Domínio pode usar cor automática, a cor padrão do mundo ou uma cor de destaque personalizada individualmente pelo botão de paleta no cabeçalho.
 - API para macros em `game.modules.get("t20-hayd-bases-e-dominios").api`:
   - `api.bases`: `catalogo`, `acoes`, `sincronizarEfeitos`, `removerEfeitos`, `montarEfeitosPara`, `obterMorador`
   - `api.dominios`: `catalogo`, `acoes`, `sincronizarEfeitos`, `removerEfeitos`, `obterRegente`, `criarTabelas`
+
+## Créditos
+
+Ícones de Bases e Domínios fornecidos por [Game-icons.net](https://game-icons.net/).
 
 ## Aviso
 

@@ -33,7 +33,7 @@ export class BaseData extends foundry.abstract.TypeDataModel {
         tc: new f.NumberField({ initial: 0, min: 0, integer: true })
       }),
 
-      /* { id, uuid, receberEfeitos, nota } */
+      /* { id, uuid, receberEfeitos, beneficiosDesativados: [], nota } */
       residentes: new f.ArrayField(new f.ObjectField()),
 
       /* { id, key, danificado, ativo, escolha, suiteResidentes: [uuid, uuid] } */

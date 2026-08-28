@@ -2,7 +2,7 @@
   "id": "t20-hayd-bases-e-dominios",
   "title": "T20 Hayd Bases e Domínios (Heróis de Arton)",
   "description": "<p>Une os módulos T20 Hayd Bases e T20 Hayd Domínios em um só pacote: dois tipos de ator independentes com automação completa das regras de <strong>Bases</strong> (capítulo 3, pp. 244–251) e de <strong>Regência/Domínios</strong> (pp. 314–327) do Heróis de Arton. Detecta os módulos antigos, herda seus dados e configurações e avisa o mestre para desativá-los.</p>",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "authors": [
     {
       "name": "Hayd",
@@ -81,7 +81,7 @@
   },
   "url": "https://github.com/ahahayd/t20-hayd-bases-e-dominios",
   "manifest": "https://github.com/ahahayd/t20-hayd-bases-e-dominios/releases/latest/download/module.json",
-  "download": "https://github.com/ahahayd/t20-hayd-bases-e-dominios/releases/download/v1.0.0/module.zip",
+  "download": "https://github.com/ahahayd/t20-hayd-bases-e-dominios/releases/download/v1.0.1/module.zip",
   "readme": "https://github.com/ahahayd/t20-hayd-bases-e-dominios/blob/main/README.md",
   "bugs": "https://github.com/ahahayd/t20-hayd-bases-e-dominios/issues",
   "license": "MIT"

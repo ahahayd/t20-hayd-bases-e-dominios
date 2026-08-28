@@ -10,6 +10,7 @@ import {
 } from "./catalogo.mjs";
 import * as Acoes from "./acoes.mjs";
 import { sincronizarEfeitos, removerEfeitos, obterMorador, montarEfeitosPara } from "./efeitos.mjs";
+import { abrirSeletorCor } from "../cor-ficha.mjs";
 
 const { HandlebarsApplicationMixin, DialogV2 } = foundry.applications.api;
 const { ActorSheetV2 } = foundry.applications.sheets;
@@ -52,6 +53,7 @@ export class BaseSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       alternarMobilia: BaseSheet.#alternarMobilia,
       configurarMobilia: BaseSheet.#configurarMobilia,
       abrirMorador: BaseSheet.#abrirMorador,
+      adicionarMoradorManual: BaseSheet.#adicionarMoradorManual,
       removerMorador: BaseSheet.#removerMorador,
       alternarMorador: BaseSheet.#alternarMorador,
       verEfeitosMorador: BaseSheet.#verEfeitosMorador,
@@ -60,6 +62,7 @@ export class BaseSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       iniciarAventura: BaseSheet.#iniciarAventura,
       empreendimento: BaseSheet.#empreendimento,
       rolarCriados: BaseSheet.#rolarCriados,
+      configurarCor: BaseSheet.#configurarCor,
       criarHomebrew: BaseSheet.#criarHomebrew,
       excluirHomebrew: BaseSheet.#excluirHomebrew
     }
@@ -74,12 +77,23 @@ export class BaseSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     moradores: { template: T("parts/moradores.hbs") },
     inventario:{ template: T("parts/inventario.hbs") },
     aventura:  { template: T("parts/aventura.hbs") },
-    diario:    { template: T("parts/diario.hbs") },
-    ajuda:     { template: T("parts/ajuda.hbs") }
+    diario:    { template: T("parts/diario.hbs") }
   };
 
   tabGroups = { primary: "geral" };
-  #dropConfigurado = false;
+  #elementoComDrop = null;
+
+  _getHeaderControls() {
+    const controles = super._getHeaderControls();
+    if (temaHayd() && (this.actor.isOwner || game.user.isGM)) {
+      controles.unshift({
+        icon: "fa-solid fa-palette",
+        label: "Cor da Ficha",
+        action: "configurarCor"
+      });
+    }
+    return controles;
+  }
 
   /* ---------------------------------------------------------------- */
   async _prepareContext(options) {
@@ -96,8 +110,7 @@ export class BaseSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       { id: "moradores", rotulo: "Moradores", icone: "fa-users" },
       { id: "inventario", rotulo: "Inventário", icone: "fa-boxes-stacked" },
       { id: "aventura", rotulo: "Aventura", icone: "fa-person-hiking" },
-      { id: "diario", rotulo: "Diário", icone: "fa-book-open" },
-      { id: "ajuda", rotulo: "Regras", icone: "fa-circle-question" }
+      { id: "diario", rotulo: "Diário", icone: "fa-book-open" }
     ].map(a => ({ ...a, ativa: this.tabGroups.primary === a.id }));
 
     /* Moradores enriquecidos (resolvidos em paralelo — antes cada um
@@ -109,10 +122,16 @@ export class BaseSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
         nome: ator?.name ?? res.nome ?? "(ator não encontrado)",
         img: ator?.img ?? "icons/svg/mystery-man.svg",
         existe: !!ator,
-        recebe: res.receberEfeitos !== false,
-        qtdEfeitos: ator ? montarEfeitosPara(actor, res.uuid).length : 0
+        recebe: res.receberEfeitos !== false
       };
     }));
+    const moradoresUuids = new Set(s.residentes.map(res => res.uuid));
+    const personagensDisponiveis = game.actors
+      .filter(ator => ator.type === "character"
+        && !moradoresUuids.has(ator.uuid)
+        && (game.user.isGM || ator.testUserPermission?.(game.user, "OBSERVER")))
+      .map(ator => ({ uuid: ator.uuid, nome: ator.name }))
+      .sort((a, b) => a.nome.localeCompare(b.nome, "pt-BR"));
 
     /* Cômodos enriquecidos */
     const comodos = s.comodos.map(c => {
@@ -186,7 +205,8 @@ export class BaseSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     if (s.seguranca.outros) segFontes.push(`Outros ${s.seguranca.outros >= 0 ? "+" : ""}${s.seguranca.outros}`);
 
     return Object.assign(context, {
-      actor, system: s, abas, moradores, comodos, mobilias, inventario, totalMoedas,
+      actor, system: s, abas, moradores, personagensDisponiveis,
+      comodos, mobilias, inventario, totalMoedas,
       tipos: Object.entries(TIPOS).map(([k, v]) => ({ key: k, nome: v.nome, selecionado: s.tipo === k })),
       portes: Object.entries(PORTES).map(([k, v]) => ({ key: k, nome: v.nome, selecionado: s.porte === k })),
       tipoAtual: TIPOS[s.tipo],
@@ -255,10 +275,12 @@ export class BaseSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     else this.element.style.removeProperty("--t20b-destaque");
 
     this.#ativarAba(this.tabGroups.primary);
-    if (!this.#dropConfigurado) {
+    /* O AppV2 pode substituir o elemento raiz ao reabrir a ficha. Liga os
+     * eventos uma vez em cada elemento, não apenas uma vez na instância. */
+    if (this.#elementoComDrop !== this.element) {
       this.element.addEventListener("drop", this.#aoSoltar.bind(this));
       this.element.addEventListener("dragover", ev => ev.preventDefault());
-      this.#dropConfigurado = true;
+      this.#elementoComDrop = this.element;
     }
     /* Quantidade dos itens do inventário (inputs sem name, fora do submit). */
     for (const inp of this.element.querySelectorAll("input.t20b-inv-qtd")) {
@@ -289,16 +311,28 @@ export class BaseSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
 
   async #aoSoltar(event) {
     let dados;
-    try { dados = JSON.parse(event.dataTransfer.getData("text/plain")); } catch { return; }
-    if (dados?.type !== "Actor" || !dados.uuid) return;
+    try {
+      dados = foundry.applications.ux.TextEditor.implementation.getDragEventData(event);
+    } catch (_err) {
+      try { dados = JSON.parse(event.dataTransfer.getData("text/plain")); } catch { return; }
+    }
+    if (dados?.type !== "Actor") return;
     event.preventDefault();
-    const ator = await fromUuid(dados.uuid);
-    if (!(ator instanceof Actor)) return;
+    event.stopPropagation();
+    const ator = await Actor.implementation.fromDropData(dados).catch(() => null);
+    if (!ator) return ui.notifications.warn("Não foi possível identificar o ator arrastado.");
+    await this.#adicionarMorador(ator);
+  }
+
+  async #adicionarMorador(ator) {
     if (ator.type === `${MODULO}.base-hayd`) return ui.notifications.warn("Uma base não pode morar em outra base.");
     if (this.actor.system.residentes.some(r => r.uuid === ator.uuid))
       return ui.notifications.warn(`${ator.name} já é morador desta base.`);
     const residentes = [...this.actor.system.residentes];
-    residentes.push({ id: foundry.utils.randomID(), uuid: ator.uuid, nome: ator.name, receberEfeitos: true });
+    residentes.push({
+      id: foundry.utils.randomID(), uuid: ator.uuid, nome: ator.name,
+      receberEfeitos: true, beneficiosDesativados: []
+    });
     await this.actor.update({ "system.residentes": residentes });
     ui.notifications.info(`${ator.name} agora mora em ${this.actor.name}.`);
     if (game.settings.get(MODULO, "basesSincronizarAuto")) await sincronizarEfeitos(this.actor, { silencioso: true });
@@ -307,6 +341,19 @@ export class BaseSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
   /* ------------------------- Ações gerais ------------------------- */
 
   static #trocarAba(event, alvo) { this.#ativarAba(alvo.dataset.tab); }
+
+  static async #configurarCor() { await abrirSeletorCor(this.actor); }
+
+  static async #adicionarMoradorManual() {
+    const seletor = this.element.querySelector("#t20b-morador-manual");
+    const uuid = seletor?.value;
+    if (!uuid) return ui.notifications.warn("Selecione um personagem para adicionar como morador.");
+    const ator = await fromUuid(uuid).catch(() => null);
+    if (!ator || ator.type !== "character") {
+      return ui.notifications.warn("O personagem selecionado não está mais disponível.");
+    }
+    await this.#adicionarMorador(ator);
+  }
 
   static #editarImagem() {
     const fp = new foundry.applications.apps.FilePicker.implementation({
@@ -586,20 +633,71 @@ export class BaseSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
 
   static async #verEfeitosMorador(event, alvo) {
     const uuid = alvo.dataset.uuid;
+    const morador = this.actor.system.residentes.find(r => r.uuid === uuid);
+    if (!morador) return;
+
     const efeitos = montarEfeitosPara(this.actor, uuid);
-    const linhas = efeitos.length
-      ? efeitos.map(e => {
-        const uso = e.flags?.tormenta20?.onuse;
-        const detalhes = e.changes.map(c => `${c.key} ${c.mode === 5 ? "=" : c.mode === 0 ? "custom" : "+"} ${c.value}`);
-        if (uso && e.flags.tormenta20.custo) detalhes.push(`custo ${e.flags.tormenta20.custo} PM`);
-        return `<li><strong>${e.name.replace("Base: ", "")}</strong>${uso ? ' <em>(efeito de uso — janela de rolagem)</em>' : ""}<br><small>${detalhes.join(" · ")}</small></li>`;
-      }).join("")
-      : "<li>Nenhum efeito automatizável no momento.</li>";
-    await DialogV2.wait({
+    if (!efeitos.length) {
+      await DialogV2.wait({
+        window: { title: "Benefícios deste morador" },
+        content: `<p>Nenhum efeito automatizável no momento.</p><p class="notes">Benefícios marcados como manuais nas descrições não geram efeitos e devem ser aplicados à mão.</p>`,
+        buttons: [{ action: "ok", label: "Fechar", default: true }]
+      });
+      return;
+    }
+
+    const escapar = valor => foundry.utils.escapeHTML(String(valor ?? ""));
+    const desativadosAtuais = new Set(morador.beneficiosDesativados ?? []);
+    const linhas = efeitos.map((efeito, indice) => {
+      const uso = efeito.flags?.tormenta20?.onuse;
+      const beneficioId = efeito.flags?.[MODULO]?.beneficioId;
+      const detalhes = efeito.changes.map(change =>
+        `${change.key} ${change.mode === 5 ? "=" : change.mode === 0 ? "custom" : "+"} ${change.value}`
+      );
+      if (uso && efeito.flags.tormenta20.custo) detalhes.push(`custo ${efeito.flags.tormenta20.custo} PM`);
+      return `<li>
+        <label>
+          <input type="checkbox" data-beneficio-index="${indice}" ${desativadosAtuais.has(beneficioId) ? "" : "checked"}>
+          <span class="t20b-beneficio-info">
+            <strong>${escapar(efeito.name.replace("Base: ", ""))}</strong>
+            ${uso ? "<em>(efeito de uso — janela de rolagem)</em>" : ""}
+            <small>${escapar(detalhes.join(" · "))}</small>
+          </span>
+        </label>
+      </li>`;
+    }).join("");
+    const avisoGeral = morador.receberEfeitos === false
+      ? `<p class="notification warning"><i class="fa-solid fa-triangle-exclamation"></i> O recebimento de benefícios está desativado para este morador. As escolhas abaixo serão salvas, mas só terão efeito quando o interruptor geral for ligado.</p>`
+      : "";
+    const habilitados = await DialogV2.prompt({
       window: { title: "Benefícios deste morador" },
-      content: `<ul class="t20b-lista">${linhas}</ul><p class="notes">Benefícios marcados como manuais nas descrições não geram efeitos e devem ser aplicados à mão.</p>`,
-      buttons: [{ action: "ok", label: "Fechar", default: true }]
-    });
+      position: { width: 520 },
+      classes: ["tormenta20-bases"],
+      content: `${avisoGeral}<ul class="t20b-beneficios-lista">${linhas}</ul><p class="notes">Desmarque um benefício para removê-lo apenas deste morador. Benefícios manuais descritos na ficha não aparecem nesta lista.</p>`,
+      ok: {
+        label: "Aplicar",
+        icon: "fa-solid fa-check",
+        callback: (_event, button) => new Set(
+          [...button.form.querySelectorAll("input[data-beneficio-index]:checked")]
+            .map(input => Number(input.dataset.beneficioIndex))
+        )
+      }
+    }).catch(() => null);
+    if (!habilitados) return;
+
+    const idsAtuais = new Set(efeitos.map(efeito => efeito.flags?.[MODULO]?.beneficioId).filter(Boolean));
+    const preservados = [...desativadosAtuais].filter(id => !idsAtuais.has(id));
+    const novosDesativados = efeitos
+      .filter((efeito, indice) => !habilitados.has(indice) && efeito.flags?.[MODULO]?.beneficioId)
+      .map(efeito => efeito.flags[MODULO].beneficioId);
+    const residentes = this.actor.system.residentes.map(residente =>
+      residente.uuid === uuid
+        ? { ...residente, beneficiosDesativados: [...preservados, ...novosDesativados] }
+        : residente
+    );
+    await this.actor.update({ "system.residentes": residentes });
+    await sincronizarEfeitos(this.actor, { silencioso: true });
+    ui.notifications.info(`Benefícios de ${morador.nome ?? "morador"} atualizados.`);
   }
 
   /* ------------------------- Inventário ---------------------------- */

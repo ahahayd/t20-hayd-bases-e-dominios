@@ -1,5 +1,7 @@
 # T20 Hayd Bases e Domínios (Heróis de Arton)
 
+[![Ko-fi](https://ko-fi.com/img/githubbutton_sm.svg)](https://ko-fi.com/haydgi)
+
 Une, em um único módulo, o **T20 Hayd Bases** e o **T20 Hayd Domínios**: dois tipos de ator independentes, com automação completa das regras de **Bases** (capítulo 3 do *Heróis de Arton*, pp. 244–251) e de **Regência/Domínios** (pp. 314–327) do mesmo suplemento. Os dois subsistemas funcionam de forma totalmente separada — cada um com seu próprio tipo de ator, ficha, catálogo e configurações — e não interferem entre si; eles só passaram a viver no mesmo pacote.
 
 ## Requisitos
@@ -90,6 +92,42 @@ Crie construções personalizadas (★) com custo, categoria, pré-requisitos e 
 - API para macros em `game.modules.get("t20-hayd-bases-e-dominios").api`:
   - `api.bases`: `catalogo`, `acoes`, `sincronizarEfeitos`, `removerEfeitos`, `montarEfeitosPara`, `obterMorador`
   - `api.dominios`: `catalogo`, `acoes`, `sincronizarEfeitos`, `removerEfeitos`, `obterRegente`, `criarTabelas`
+
+---
+
+## ❤️ Apoio e Comissões
+
+Este módulo é totalmente gratuito. Se você gosta de usá-lo e quiser apoiar seu desenvolvimento, qualquer contribuição é muito bem-vinda!
+
+### ☕ Ko-fi
+
+Você pode apoiar meu trabalho pelo Ko-fi:
+
+[![Ko-fi](https://ko-fi.com/img/githubbutton_sm.svg)](https://ko-fi.com/haydgi)
+
+Ao apoiar pelo Ko-fi, você também pode deixar uma mensagem com um pedido ou sugestão de automação para Foundry VTT que gostaria de ver. Esses pedidos podem servir de inspiração para futuras funcionalidades, automações ou módulos.
+
+### 🇧🇷 Pix
+
+Se preferir, você também pode apoiar diretamente via Pix.
+
+**Chave Pix aleatória:**
+
+`a8baae96-f4d1-48a5-af25-45bf419fb0fb`
+
+<p align="center">
+  <img src="assets/qrcode.png" alt="QR Code Pix" width="220">
+</p>
+
+### 🛠️ Comissões para Foundry VTT
+
+Também aceito comissões para desenvolvimento no Foundry VTT, incluindo a implementação de **módulos completos de aventuras**, respeitando os direitos e licenças dos materiais utilizados, com cenas, atores, itens, diários, automações e outros conteúdos necessários para deixar a aventura pronta para uso no Foundry, além de módulos específicos para Tormenta20 e outros sistemas.
+
+Se tiver interesse em contratar uma comissão, você pode entrar em contato comigo pelo Discord `xddyahaha` para conversarmos sobre o projeto e seu escopo.
+
+<p align="center">
+  <sub>Todo apoio é opcional e ajuda a continuar desenvolvendo e mantendo meus módulos para Foundry VTT. ❤️</sub>
+</p>
 
 ## Créditos
 

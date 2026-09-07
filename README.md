@@ -1,6 +1,6 @@
-# T20 Hayd Bases e Domínios (Heróis de Arton)
+[![Apoie no Ko-fi](https://img.shields.io/badge/Apoie_no_Ko--fi-FF5E5B?style=for-the-badge&logo=kofi&logoColor=white)](https://ko-fi.com/haydgi)
 
-[![Ko-fi](https://ko-fi.com/img/githubbutton_sm.svg)](https://ko-fi.com/haydgi)
+# T20 Hayd Bases e Domínios (Heróis de Arton)
 
 Une, em um único módulo, o **T20 Hayd Bases** e o **T20 Hayd Domínios**: dois tipos de ator independentes, com automação completa das regras de **Bases** (capítulo 3 do *Heróis de Arton*, pp. 244–251) e de **Regência/Domínios** (pp. 314–327) do mesmo suplemento. Os dois subsistemas funcionam de forma totalmente separada — cada um com seu próprio tipo de ator, ficha, catálogo e configurações — e não interferem entre si; eles só passaram a viver no mesmo pacote.
 
@@ -103,7 +103,7 @@ Este módulo é totalmente gratuito. Se você gosta de usá-lo e quiser apoiar s
 
 Você pode apoiar meu trabalho pelo Ko-fi:
 
-[![Ko-fi](https://ko-fi.com/img/githubbutton_sm.svg)](https://ko-fi.com/haydgi)
+[![Apoie no Ko-fi](https://img.shields.io/badge/Apoie_no_Ko--fi-FF5E5B?style=for-the-badge&logo=kofi&logoColor=white)](https://ko-fi.com/haydgi)
 
 Ao apoiar pelo Ko-fi, você também pode deixar uma mensagem com um pedido ou sugestão de automação para Foundry VTT que gostaria de ver. Esses pedidos podem servir de inspiração para futuras funcionalidades, automações ou módulos.
 

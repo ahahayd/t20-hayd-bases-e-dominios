@@ -8,11 +8,13 @@ import { registrarFicha } from "./sheet.mjs";
 import * as Catalogo from "./catalogo.mjs";
 import * as Acoes from "./acoes.mjs";
 import { sincronizarEfeitos, removerEfeitos, montarEfeitosPara, obterMorador } from "./efeitos.mjs";
+import { registrarSocket, registrarArraste } from "./transferencia.mjs";
 
 Hooks.once("init", () => {
   console.debug(`${MODULO} | Inicializando.`);
   registrarDataModel();
   registrarFicha();
+  registrarArraste();
 
   game.settings.register(MODULO, "basesSincronizarAuto", {
     name: "Bases: sincronizar efeitos automaticamente",
@@ -40,6 +42,7 @@ Hooks.once("i18nInit", () => {
 });
 
 Hooks.once("ready", async () => {
+  registrarSocket();
   /* Migração: o Caixa do Grupo antigo (T$ avulsos em caixa.ts) agora é
    * representado pelas moedas da base — converte o saldo em T$/TC. */
   if (game.user === game.users.activeGM) {
@@ -85,8 +88,11 @@ Hooks.on("renderChatMessageHTML", (mensagem, html) => {
  * cliente que originou o update (preUpdate), então game.user é o autor.
  * Movimentações via movimentarCaixa já trazem o histórico no próprio
  * update e são ignoradas aqui. */
+const TIPOS_COM_CAIXA = new Set([`${MODULO}.base-hayd`, `${MODULO}.negocio`]);
+
 Hooks.on("preUpdateActor", (actor, changes, options) => {
-  if (actor.type !== `${MODULO}.base-hayd`) return;
+  /* O Negócio usa o mesmo caixa (moedas + histórico) das Bases. */
+  if (!TIPOS_COM_CAIXA.has(actor.type)) return;
   if (options?.t20bSemHistorico) return;
   const din = changes.system?.dinheiro;
   if (!din) return;
@@ -107,7 +113,7 @@ Hooks.on("preUpdateActor", (actor, changes, options) => {
     aventura: actor.system.aventura?.numero ?? 0,
     data: new Date().toLocaleDateString("pt-BR"),
     usuario: game.user.name,
-    desc: "Ajuste manual das moedas (Inventário)",
+    desc: `Ajuste manual das moedas (${actor.type === `${MODULO}.negocio` ? "Estoque" : "Inventário"})`,
     delta: deltaDec / 10,
     saldo: Acoes.totalDecimos(novo) / 10
   });

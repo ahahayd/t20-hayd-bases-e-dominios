@@ -8,6 +8,13 @@
 import { MODULO } from "./bases/catalogo.mjs";
 import { sincronizarEfeitos as sincronizarBases } from "./bases/efeitos.mjs";
 import { sincronizarEfeitos as sincronizarDominios } from "./dominios/efeitos.mjs";
+import { sincronizarEfeitos as sincronizarNegocios } from "./negocios/efeitos.mjs";
+
+const TIPOS_ATOR = {
+  base: { tipo: `${MODULO}.base-hayd`, rotulo: "uma Base válida" },
+  dominio: { tipo: `${MODULO}.dominio`, rotulo: "um Domínio válido" },
+  negocio: { tipo: `${MODULO}.negocio`, rotulo: "um Negócio válido" }
+};
 
 function escapar(valor) {
   return foundry.utils.escapeHTML(String(valor ?? ""));
@@ -17,7 +24,17 @@ function escapar(valor) {
 export function htmlDesfechoObra(obra, alteradoPor = "") {
   const nome = escapar(obra.nome);
   let conteudo;
-  if (obra.tipo === "base") {
+  if (obra.tipo === "negocio") {
+    if (obra.fundacao) {
+      conteudo = obra.sucesso
+        ? `<p class="t20b-bom"><strong>${nome}</strong> abre as portas como um negócio de nível 1!</p><p>Escolha o primeiro ativo na aba Ativos.</p>`
+        : "<p>Não foi possível criar o negócio — o valor foi gasto.</p>";
+    } else {
+      conteudo = obra.sucesso
+        ? `<p class="t20b-bom">O negócio chega ao <strong>${nome}</strong>!</p><p>Escolha o novo ativo na aba Ativos.</p>`
+        : "<p>O negócio não cresce desta vez — o valor foi gasto.</p>";
+    }
+  } else if (obra.tipo === "base") {
     conteudo = obra.sucesso
       ? `<p class="t20b-bom"><strong>${nome}</strong> é construído na base!</p>${obra.configuravel ? "<p>Configure o cômodo pela engrenagem na aba Cômodos.</p>" : ""}`
       : "<p>A obra fracassa e o valor foi gasto.</p>";
@@ -88,33 +105,46 @@ async function atualizarDominio(dominio, obra, novoSucesso) {
   return { ...obra, entrada, sucesso: novoSucesso };
 }
 
+async function atualizarNegocio(negocio, obra, novoSucesso) {
+  const { nivelAnterior, nivelNovo } = obra.entrada;
+  await negocio.update(
+    { "system.nivel": novoSucesso ? nivelNovo : nivelAnterior },
+    { t20nSemSync: true }
+  );
+  if (game.settings.get(MODULO, "negociosSincronizarAuto")) {
+    await sincronizarNegocios(negocio, { silencioso: true });
+  }
+  return { ...obra, sucesso: novoSucesso };
+}
+
 async function alternarResultado(mensagem) {
   if (!game.user.isGM) return;
   const atual = game.messages.get(mensagem.id) ?? mensagem;
   const obra = atual.getFlag(MODULO, "obra");
   if (!obra?.atorUuid || !obra?.entrada?.id) return;
-  if (!["base", "dominio"].includes(obra.tipo)) return;
+  const tipoAtor = TIPOS_ATOR[obra.tipo];
+  if (!tipoAtor) return;
 
   const novoSucesso = !obra.sucesso;
   const ator = await fromUuid(obra.atorUuid).catch(() => null);
   if (!ator) return ui.notifications.error("A ficha vinculada a esta obra não foi encontrada.");
-  if (obra.tipo === "base" && ator.type !== `${MODULO}.base-hayd`) {
-    return ui.notifications.error("A ficha vinculada não é mais uma Base válida.");
-  }
-  if (obra.tipo === "dominio" && ator.type !== `${MODULO}.dominio`) {
-    return ui.notifications.error("A ficha vinculada não é mais um Domínio válido.");
+  if (ator.type !== tipoAtor.tipo) {
+    return ui.notifications.error(`A ficha vinculada não é mais ${tipoAtor.rotulo}.`);
   }
   const temMobilias = obra.tipo === "base" && !novoSucesso
     && ator.system.mobilias.some(mobilia => mobilia.comodoId === obra.entrada.id);
   const confirmado = await foundry.applications.api.DialogV2.confirm({
     window: { title: "Alterar resultado da obra" },
-    content: `<p>Alterar o resultado de <strong>${escapar(obra.nome)}</strong> para <strong>${novoSucesso ? "SUCESSO" : "FALHA"}</strong>?</p><p class="notes">O custo e a ação permanecem gastos. A obra será ${novoSucesso ? "adicionada" : "removida"} da ficha.${temMobilias ? " As mobílias instaladas neste cômodo serão desvinculadas e restauradas caso o resultado volte a ser sucesso." : ""}</p>`
+    content: `<p>Alterar o resultado de <strong>${escapar(obra.nome)}</strong> para <strong>${novoSucesso ? "SUCESSO" : "FALHA"}</strong>?</p><p class="notes">O custo e a ação permanecem gastos. ${obra.tipo === "negocio"
+      ? `O negócio passará ao nível ${novoSucesso ? obra.entrada.nivelNovo : obra.entrada.nivelAnterior}${novoSucesso ? "" : "; ativos acima do limite deixam de funcionar"}.`
+      : `A obra será ${novoSucesso ? "adicionada" : "removida"} da ficha.`}${temMobilias ? " As mobílias instaladas neste cômodo serão desvinculadas e restauradas caso o resultado volte a ser sucesso." : ""}</p>`
   });
   if (!confirmado) return;
 
-  const obraAtualizada = obra.tipo === "base"
-    ? await atualizarBase(ator, obra, novoSucesso)
-    : await atualizarDominio(ator, obra, novoSucesso);
+  let obraAtualizada;
+  if (obra.tipo === "base") obraAtualizada = await atualizarBase(ator, obra, novoSucesso);
+  else if (obra.tipo === "negocio") obraAtualizada = await atualizarNegocio(ator, obra, novoSucesso);
+  else obraAtualizada = await atualizarDominio(ator, obra, novoSucesso);
 
   const recipiente = document.createElement("div");
   recipiente.innerHTML = atual.content;
@@ -122,7 +152,7 @@ async function alternarResultado(mensagem) {
   if (resultadoTeste) {
     resultadoTeste.classList.remove("t20b-bom", "t20b-ruim", "t20d-bom", "t20d-ruim");
     resultadoTeste.classList.add(
-      obra.tipo === "base"
+      obra.tipo !== "dominio"
         ? (novoSucesso ? "t20b-bom" : "t20b-ruim")
         : (novoSucesso ? "t20d-bom" : "t20d-ruim")
     );

@@ -1,0 +1,66 @@
+<section class="t20b-aba" data-tab="periodo">
+  <div class="t20b-colunas">
+    <div class="t20b-painel">
+      <h3><i class="fa-solid fa-calendar-days"></i> Mês ou Aventura</h3>
+      <div class="form-group">
+        <label>Período atual</label>
+        <div class="t20b-inline">
+          <input type="number" name="system.aventura.numero" value="{{system.aventura.numero}}" min="0" step="1" style="width: 80px" title="Edite para ajustar manualmente o contador">
+          <span class="notes">Rendimentos {{#if periodo.rendimentoColetado}}<span class="t20b-bom">(coletados)</span>{{else}}<span class="t20b-ruim">(pendentes)</span>{{/if}}</span>
+        </div>
+      </div>
+      <button type="button" class="t20b-botao t20b-primario" data-action="novoPeriodo">
+        <i class="fa-solid fa-flag-checkered"></i> Iniciar novo mês/aventura
+      </button>
+      <p class="notes">Avança o contador, renova os usos por período e lista as escolhas no chat.</p>
+      <button type="button" class="t20b-botao" data-action="rendimentos" {{#unless system.fundado}}disabled{{/unless}} title="T$ 100 × nível, ou teste de Ofício/Nobreza × 10 × nível para quem se dedicou o mês inteiro">
+        <i class="fa-solid fa-sack-dollar"></i> Coletar rendimentos ({{rendimentoFmt}})
+      </button>
+      {{#if temEmporio}}<p class="notes"><i class="fa-solid fa-store"></i> Empório: o rendimento é dobrado.</p>{{/if}}
+    </div>
+
+    <div class="t20b-painel">
+      <h3><i class="fa-solid fa-list-check"></i> Escolhas por período</h3>
+      {{#if lembretes.length}}
+      <ul class="t20b-lista">
+        {{#each lembretes}}<li><strong>{{origem}}:</strong> {{texto}}</li>{{/each}}
+      </ul>
+      {{else}}
+      <p class="notes">Nenhum ativo com escolhas por mês/aventura.</p>
+      {{/if}}
+    </div>
+
+    {{#if temCassino}}
+    <div class="t20b-painel">
+      <h3><i class="fa-solid fa-dice"></i> Cassino</h3>
+      <p class="notes">Uma aposta por período: par rende <strong>{{premioCassino}}</strong>; ímpar custa metade disso. {{#if periodo.cassinoUsado}}<span class="t20b-ruim">(já apostou)</span>{{else}}<span class="t20b-bom">(disponível)</span>{{/if}}</p>
+      <div class="t20b-acoes-linha">
+        <button type="button" class="t20b-botao" data-action="cassino"><i class="fa-solid fa-dice"></i> Apostar</button>
+        {{#if dividaFmt}}
+        <button type="button" class="t20b-botao t20b-perigo" data-action="quitarDivida" title="Quitar a dívida com a casa">
+          <i class="fa-solid fa-file-invoice-dollar"></i> Dívida: {{dividaFmt}}
+        </button>
+        {{/if}}
+      </div>
+    </div>
+    {{/if}}
+
+    {{#if temMercado}}
+    <div class="t20b-painel">
+      <h3><i class="fa-solid fa-sitemap"></i> Mercado Multinivelado</h3>
+      <p class="notes">Associados: <strong>{{associados.length}}</strong> · multiplicador ×{{multiplicadorMercado}} (máx. {{system.nivel}}). {{#if periodo.mercadoUsado}}<span class="t20b-ruim">(comissão recebida)</span>{{else}}<span class="t20b-bom">(disponível)</span>{{/if}}</p>
+      <button type="button" class="t20b-botao" data-action="mercado"><i class="fa-solid fa-user-plus"></i> Registrar recrutamento</button>
+      <div class="t20b-historico">
+        {{#each associados}}
+        <div class="t20b-historico-linha">
+          <span class="t20b-historico-desc">{{nome}} <span class="t20b-historico-user">· período {{aventura}}</span></span>
+          <button type="button" class="t20b-icone t20b-perigo" data-action="removerAssociado" data-indice="{{indice}}" title="Remover associado">
+            <i class="fa-solid fa-xmark"></i>
+          </button>
+        </div>
+        {{/each}}
+      </div>
+    </div>
+    {{/if}}
+  </div>
+</section>

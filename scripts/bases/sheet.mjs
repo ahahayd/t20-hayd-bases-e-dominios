@@ -11,6 +11,7 @@ import {
 import * as Acoes from "./acoes.mjs";
 import { sincronizarEfeitos, removerEfeitos, obterMorador, montarEfeitosPara } from "./efeitos.mjs";
 import { abrirSeletorCor } from "../cor-ficha.mjs";
+import { retirarItem, guardarItem, CHAVE_ARRASTE } from "./transferencia.mjs";
 
 const { HandlebarsApplicationMixin, DialogV2 } = foundry.applications.api;
 const { ActorSheetV2 } = foundry.applications.sheets;
@@ -59,6 +60,7 @@ export class BaseSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       verEfeitosMorador: BaseSheet.#verEfeitosMorador,
       abrirItem: BaseSheet.#abrirItem,
       excluirItem: BaseSheet.#excluirItem,
+      retirarItem: BaseSheet.#retirarItem,
       iniciarAventura: BaseSheet.#iniciarAventura,
       empreendimento: BaseSheet.#empreendimento,
       rolarCriados: BaseSheet.#rolarCriados,
@@ -190,7 +192,7 @@ export class BaseSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
         .map(i => ({
           id: i.id, nome: i.name, img: i.img,
           qtd: i.system.qtd ?? 1,
-          precoFmt: Acoes.fmtTS(i.system.preco ?? 0)
+          pesoFmt: Acoes.fmtPeso(i.system.espacos, i.system.qtd ?? 1)
         }))
         .sort((a, b) => a.nome.localeCompare(b.nome, "pt-BR"))
     }));
@@ -290,6 +292,17 @@ export class BaseSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
         await item.update({ "system.qtd": Math.max(0, Math.round(Number(ev.currentTarget.value) || 0)) });
       });
     }
+    /* Arrastar itens do inventário para outras fichas: o item é movido
+     * (retirado da base) pelo hook de drop em transferencia.mjs. */
+    for (const linha of this.element.querySelectorAll(".t20b-inv-linha[data-id]")) {
+      linha.addEventListener("dragstart", (ev) => {
+        const item = this.actor.items.get(linha.dataset.id);
+        if (!item) return;
+        const dados = { ...item.toDragData(), [CHAVE_ARRASTE]: { baseUuid: this.actor.uuid, itemId: item.id } };
+        ev.dataTransfer.setData("text/plain", JSON.stringify(dados));
+        ev.stopPropagation();
+      });
+    }
   }
 
   /** Só itens físicos podem ser guardados no inventário da base. */
@@ -298,7 +311,15 @@ export class BaseSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       ui.notifications.warn("Somente itens físicos (armas, equipamentos, consumíveis e tesouros) podem ser guardados na base.");
       return null;
     }
+    /* Vindo de outro ator: pergunta a quantidade e move (subtrai da origem). */
+    if (await guardarItem(this.actor, item)) return null;
     return super._onDropItem(event, item);
+  }
+
+  /** Jogadores sem posse desta ficha também podem soltar itens de seus
+   *  personagens aqui — a transferência é validada pelo mestre. */
+  _canDragDrop(selector) {
+    return true;
   }
 
   #ativarAba(id) {
@@ -704,6 +725,10 @@ export class BaseSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
 
   static #abrirItem(event, alvo) {
     this.actor.items.get(alvo.dataset.id)?.sheet?.render(true);
+  }
+
+  static async #retirarItem(event, alvo) {
+    await retirarItem(this.actor, alvo.dataset.id);
   }
 
   static async #excluirItem(event, alvo) {

@@ -11,6 +11,7 @@ import {
 } from "./catalogo.mjs";
 import { obterRegente, sincronizarEfeitos } from "./efeitos.mjs";
 import { htmlDesfechoObra } from "../correcao-obras.mjs";
+import { pedirTeste } from "../teste-remoto.mjs";
 
 const { DialogV2 } = foundry.applications.api;
 
@@ -180,25 +181,44 @@ export async function prepararTesteRegente(dominio, periciaKey, cd, {
     return null;
   }
 
+  const montarPartes = (chave) => {
+    const per = regente.system.pericias?.[chave];
+    const lista = [`1d20`, `${per?.value ?? 0}[${labelPericia(chave)}]`];
+    if (incluirModificadores) {
+      // Conselheiro fornece o bônus de treinamento se o regente for destreinado
+      const treinado = !!(per?.treinado || (per?.treino ?? 0) > 0);
+      const conselheiros = dominio.system.corte.conselheiros ?? [];
+      const cobre = conselheiros.some(c => CONSELHEIROS[c]?.pericia === chave);
+      if (!treinado && cobre) {
+        const conselheiro = regente.system.attributes?.treino ?? 2;
+        lista.push(`${conselheiro}[Conselheiro]`);
+      }
+
+      const modAcoes = dominio.system.modAcoes;
+      if (modAcoes) lista.push(`${modAcoes}[Ações de domínio]`);
+    }
+    if (bonusExtra) lista.push(`${bonusExtra}[${rotuloExtra || "Bônus"}]`);
+    return lista;
+  };
+
+  /* Regente de um jogador conectado: o teste é rolado na tela dele, antes
+   * de qualquer gasto (recusar cancela a ação, como fechar a janela). */
+  const partesPorPericia = {};
+  for (const chave of new Set([periciaKey, ...Object.keys(regente.system.pericias ?? {})]))
+    partesPorPericia[chave] = montarPartes(chave);
+  const remoto = await pedirTeste(regente, {
+    acao: `realizar a ação de domínio “${rotulo || labelPericia(periciaKey)}”`, local: dominio.name,
+    pericia: periciaKey, cd, modo: "partes", partesPorPericia, rotulo
+  });
+  if (remoto === null) return null;
+  if (remoto) {
+    const t = resultadoTeste(remoto.roll, regente, cd, remoto.rollMode, remoto.pericia, rotulo);
+    return { regente, rollMode: remoto.rollMode, rolar: async () => t };
+  }
+
   const nomePericia = labelPericia(periciaKey);
   const per = regente.system.pericias?.[periciaKey];
-  const valor = per?.value ?? 0;
-  const partes = [`1d20`, `${valor}[${nomePericia}]`];
-
-  if (incluirModificadores) {
-    // Conselheiro fornece o bônus de treinamento se o regente for destreinado
-    const treinado = !!(per?.treinado || (per?.treino ?? 0) > 0);
-    const conselheiros = dominio.system.corte.conselheiros ?? [];
-    const cobre = conselheiros.some(c => CONSELHEIROS[c]?.pericia === periciaKey);
-    if (!treinado && cobre) {
-      const conselheiro = regente.system.attributes?.treino ?? 2;
-      partes.push(`${conselheiro}[Conselheiro]`);
-    }
-
-    const modAcoes = dominio.system.modAcoes;
-    if (modAcoes) partes.push(`${modAcoes}[Ações de domínio]`);
-  }
-  if (bonusExtra) partes.push(`${bonusExtra}[${rotuloExtra || "Bônus"}]`);
+  const partes = montarPartes(periciaKey);
 
   let rollMode = game.settings.get("core", "rollMode");
   let rConfig = {};
@@ -251,15 +271,18 @@ export async function prepararTesteRegente(dominio, periciaKey, cd, {
     } else {
       roll = await rolar(partes.join(" + ").replace(/\+ -/g, "- "));
     }
-    if (!roll) return null;
-
-    const sucesso = cd != null ? roll.total >= cd : null;
-    const margem = cd != null ? roll.total - cd : 0;
-    console.debug(`${MODULO} | Teste ${rotulo || periciaKey}: ${roll.formula} = ${roll.total} vs CD ${cd} → ${sucesso ? "sucesso" : "falha"} (margem ${margem})`);
-    return { roll, sucesso, margem, total: roll.total, regente, cd, rollMode };
+    return resultadoTeste(roll, regente, cd, rollMode, periciaKey, rotulo);
   };
 
   return { regente, rollMode, rolar: rolarTeste };
+}
+
+function resultadoTeste(roll, regente, cd, rollMode, periciaKey, rotulo) {
+  if (!roll) return null;
+  const sucesso = cd != null ? roll.total >= cd : null;
+  const margem = cd != null ? roll.total - cd : 0;
+  console.debug(`${MODULO} | Teste ${rotulo || periciaKey}: ${roll.formula} = ${roll.total} vs CD ${cd} → ${sucesso ? "sucesso" : "falha"} (margem ${margem})`);
+  return { roll, sucesso, margem, total: roll.total, regente, cd, rollMode, nomePericia: labelPericia(periciaKey) };
 }
 
 /** Prepara e executa o teste em um único passo (janela + rolagem). */
@@ -270,6 +293,7 @@ export async function testeRegente(dominio, periciaKey, cd, opcoes = {}) {
 
 function htmlResultadoTeste(t, nomePericia) {
   if (!t) return "";
+  nomePericia = t.nomePericia ?? nomePericia; // o jogador pode ter trocado a perícia
   const classe = t.sucesso ? "t20d-bom" : "t20d-ruim";
   const texto = t.sucesso ? "SUCESSO" : "FALHA";
   return `<p>Teste de <strong>${nomePericia}</strong> (${t.regente.name}): <strong>${t.total}</strong> vs CD ${t.cd} — <span class="${classe}" data-t20bd-resultado-teste><strong>${texto}</strong></span></p>`;

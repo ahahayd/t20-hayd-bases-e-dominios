@@ -1,0 +1,47 @@
+<section class="t20b-aba" data-tab="frequentadores">
+  <p class="notes"><i class="fa-solid fa-hand-pointer"></i> Arraste atores para esta ficha ou selecione um personagem abaixo. Os benefícios dos ativos valem para o dono e para o resto do grupo enquanto tiverem acesso ao negócio (e por até um mês depois). Desligue o interruptor de quem estiver longe demais para frequentá-lo ao menos uma vez por semana.</p>
+  <div class="t20b-adicionar-morador">
+    <select id="t20n-frequentador-manual" aria-label="Selecionar personagem para adicionar como frequentador">
+      <option value="">— selecionar personagem —</option>
+      {{#each personagensDisponiveis}}
+      <option value="{{uuid}}">{{nome}}</option>
+      {{/each}}
+    </select>
+    <button type="button" class="t20b-botao" data-action="adicionarFrequentadorManual">
+      <i class="fa-solid fa-user-plus"></i> Adicionar frequentador
+    </button>
+  </div>
+  <div class="t20b-cartoes">
+    {{#each frequentadores}}
+    <article class="t20b-cartao t20b-morador {{#unless recebe}}t20b-inativo{{/unless}}">
+      <header>
+        <img class="t20b-morador-img" src="{{img}}" alt="">
+        <strong>{{nome}}</strong>
+        {{#if dono}}<span class="t20b-mini"><i class="fa-solid fa-crown"></i> Dono</span>{{/if}}
+        <span class="t20b-flex"></span>
+        <button type="button" class="t20b-icone {{#if dono}}t20n-dono{{/if}}" data-action="definirDono" data-uuid="{{uuid}}" title="{{#if dono}}Deixar de ser o dono{{else}}Definir como dono (recebe os rendimentos){{/if}}">
+          <i class="fa-solid fa-crown"></i>
+        </button>
+        <button type="button" class="t20b-icone" data-action="alternarFrequentador" data-uuid="{{uuid}}" title="{{#if recebe}}Marcar como longe do negócio (para de receber benefícios){{else}}Marcar como com acesso ao negócio (volta a receber benefícios){{/if}}">
+          <i class="fa-solid {{#if recebe}}fa-toggle-on{{else}}fa-toggle-off{{/if}}"></i>
+        </button>
+        <button type="button" class="t20b-icone" data-action="verEfeitosFrequentador" data-uuid="{{uuid}}" title="Configurar benefícios individuais">
+          <i class="fa-solid fa-list-check"></i>
+        </button>
+        {{#if existe}}
+        <button type="button" class="t20b-icone" data-action="abrirFrequentador" data-uuid="{{uuid}}" title="Abrir ficha">
+          <i class="fa-solid fa-user"></i>
+        </button>
+        {{/if}}
+        <button type="button" class="t20b-icone t20b-perigo" data-action="removerFrequentador" data-uuid="{{uuid}}" title="Remover do negócio">
+          <i class="fa-solid fa-user-slash"></i>
+        </button>
+      </header>
+      {{#unless existe}}<p class="t20b-ruim">Ator não encontrado no mundo (foi excluído?).</p>{{/unless}}
+      {{#unless recebe}}<p class="notes">Longe do negócio — sem benefícios até voltar.</p>{{/unless}}
+    </article>
+    {{else}}
+    <p class="notes">Ninguém frequenta o negócio ainda. O primeiro personagem adicionado vira o dono.</p>
+    {{/each}}
+  </div>
+</section>

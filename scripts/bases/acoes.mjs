@@ -10,6 +10,7 @@ import {
 } from "./catalogo.mjs";
 import { sincronizarEfeitos, obterMorador } from "./efeitos.mjs";
 import { htmlDesfechoObra } from "../correcao-obras.mjs";
+import { pedirTeste } from "../teste-remoto.mjs";
 
 const { DialogV2 } = foundry.applications.api;
 
@@ -25,6 +26,13 @@ async function rolar(formula) {
 
 export function fmtTS(v) {
   return `T$ ${Number(v).toLocaleString("pt-BR")}`;
+}
+
+/** Peso do item no inventário: "espaços por unidade/total" (ex.: 0,5/1,5). */
+export function fmtPeso(espacos, qtd) {
+  const un = Number(espacos) || 0;
+  const f = (v) => Number(v.toFixed(2)).toLocaleString("pt-BR");
+  return `${f(un)}/${f(un * (Number(qtd) || 0))}`;
 }
 
 export async function cartao(base, titulo, corpo, { rolls = [], flagsModulo = {} } = {}) {
@@ -89,7 +97,7 @@ export async function movimentarCaixa(base, desc, delta) {
  * Cobra um custo: desconta do caixa se pedido; caso contrário apenas
  * registra que foi pago com recursos externos (dinheiro dos personagens).
  */
-async function pagarCusto(base, custo, desc, doCaixa) {
+export async function pagarCusto(base, custo, desc, doCaixa) {
   if (custo <= 0) return true;
   if (doCaixa) {
     if (saldoCaixaDecimos(base) < custo * 10) {
@@ -124,32 +132,51 @@ function opcoesPericias(selecionada = "nobr") {
 }
 
 /**
+ * Topo dos diálogos de teste: efeito, custo e falha em blocos separados,
+ * para não parecer uma frase só. `descricao` segue aceito para textos livres.
+ */
+export function resumoTeste({ descricao = "", efeito = "", custo = "", falha = "" }) {
+  const bloco = (icone, rotulo, texto, cls = "") => texto
+    ? `<div class="t20b-resumo-linha ${cls}"><span class="t20b-resumo-rotulo"><i class="fa-solid ${icone}"></i> ${rotulo}</span><div>${texto}</div></div>`
+    : "";
+  return `<div class="t20b-resumo">
+    ${descricao ? `<p class="t20b-resumo-desc">${descricao}</p>` : ""}
+    ${bloco("fa-star", "Efeito", efeito)}
+    ${bloco("fa-coins", "Custo", custo)}
+    ${bloco("fa-triangle-exclamation", "Se falhar", falha, "t20b-resumo-falha")}
+  </div>`;
+}
+
+/**
  * Diálogo padrão de teste: escolhe o morador, a perícia (padrão Nobreza,
- * mas as regras permitem outra perícia justificada), CD editável, bônus
- * de ajuda e se o custo sai do caixa.
+ * mas as regras permitem outra perícia justificada), CD editável e se o
+ * custo sai do caixa.
  */
 export async function dialogoTeste(base, {
-  titulo, descricao, cd, custo = 0, pericia = "nobr", permitirPericia = true
+  titulo, descricao, efeito, custoTexto, falha, cd, custo = 0, pericia = "nobr", permitirPericia = true
 }) {
   if (!base.system.residentes.length) {
     ui.notifications.warn("Adicione ao menos um morador à base (arraste um ator para a ficha).");
     return null;
   }
   const conteudo = `
-    <p>${descricao}</p>
-    <div class="form-group"><label>Morador que realiza a ação</label>
-      <select name="uuid">${opcoesMoradores(base)}</select></div>
-    ${permitirPericia ? `<div class="form-group"><label>Perícia (outra perícia exige aprovação do mestre)</label>
-      <select name="pericia">${opcoesPericias(pericia)}</select></div>` : ""}
-    <div class="form-group"><label>CD</label>
-      <input type="number" name="cd" value="${cd}"></div>
-    <div class="form-group"><label>Bônus extra (ajuda de outros personagens etc.)</label>
-      <input type="number" name="bonus" value="0"></div>
-    ${custo > 0 ? `<div class="form-group"><label class="t20b-inline">
-      <input type="checkbox" name="doCaixa" checked> Descontar ${fmtTS(custo)} do caixa da base</label></div>` : ""}
-    <p class="notes">Ao rolar, abre a janela de rolagem do personagem — aplique lá os efeitos ativos e outros ajustes da ficha.</p>`;
+    <div class="t20b-dialogo-teste">
+      ${resumoTeste({ descricao, efeito, custo: custoTexto, falha })}
+      <div class="t20b-dialogo-campos">
+        <div class="form-group"><label>Morador</label>
+          <select name="uuid">${opcoesMoradores(base)}</select></div>
+        ${permitirPericia ? `<div class="form-group"><label>Perícia</label>
+          <select name="pericia">${opcoesPericias(pericia)}</select></div>` : ""}
+        <div class="form-group"><label>CD</label>
+          <input type="number" name="cd" value="${cd}"></div>
+      </div>
+      ${custo > 0 ? `<label class="t20b-inline t20b-dialogo-check">
+        <input type="checkbox" name="doCaixa" checked> Descontar ${fmtTS(custo)} do caixa da base</label>` : ""}
+      <p class="notes">Ao rolar, abre a janela de rolagem do personagem — aplique lá os efeitos ativos e outros ajustes da ficha.</p>
+    </div>`;
   return DialogV2.prompt({
     window: { title: titulo },
+    position: { width: 480 },
     content: conteudo,
     ok: { label: "Rolar", callback: (ev, btn) => new foundry.applications.ux.FormDataExtended(btn.form).object }
   }).catch(() => null);
@@ -164,10 +191,22 @@ export async function executarTeste(base, dados, { rotulo }) {
   const bonus = Number(dados.bonus) || 0;
   let roll = null;
 
+  /* Personagem de um jogador conectado: o teste é rolado na tela dele. */
+  const remoto = await pedirTeste(morador, {
+    acao: `realizar a ação “${rotulo}”`, local: base.name,
+    pericia: dados.pericia, cd: dados.cd, rotulo
+  });
+  /* Recusa/sem resposta: o custo já foi pago, então quem disparou rola. */
+  if (remoto === null) ui.notifications.info(`Rolando o teste de ${morador.name} aqui mesmo.`);
+  if (remoto) {
+    dados.pericia = remoto.pericia;
+    roll = remoto.roll;
+  }
+
   /* Rola pela ficha do personagem: abre a janela de rolagem do sistema,
    * onde o jogador pode aplicar efeitos ativos, modificadores e o modo
    * de rolagem, exatamente como ao rolar a perícia pela ficha. */
-  if (typeof morador.rollPericia === "function" && morador.system.pericias?.[dados.pericia]) {
+  if (!remoto && typeof morador.rollPericia === "function" && morador.system.pericias?.[dados.pericia]) {
     try {
       roll = await morador.rollPericia(dados.pericia, { message: false });
     } catch (err) {
@@ -193,7 +232,7 @@ export async function executarTeste(base, dados, { rotulo }) {
   return { roll, sucesso, cd, morador, bonus, total };
 }
 
-function htmlTeste(t, pericia) {
+export function htmlTeste(t, pericia) {
   const cls = t.sucesso ? "t20b-bom" : "t20b-ruim";
   const conta = t.bonus
     ? `<strong>${t.roll.total}</strong> + ${t.bonus} (ajuda) = <strong>${t.total}</strong>`
@@ -217,9 +256,9 @@ export async function acaoAumentarPorte(base) {
 
   const dados = await dialogoTeste(base, {
     titulo: "Ampliar Porte",
-    descricao: `Ampliar a base de <strong>${atual.nome}</strong> para <strong>${prox.nome}</strong> (${prox.comodos} cômodos, manutenção ${fmtTS(prox.manutencao)}).<br>
-      Custo: <strong>${fmtTS(custo)}</strong> (diferença de preço) · CD ${cd} (20 + cômodos do novo porte) · 1 ação entre aventuras.<br>
-      <em>Em caso de falha, o valor dos materiais é gasto; é possível tentar de novo com outra ação e o mesmo valor.</em>`,
+    efeito: `A base passa de <strong>${atual.nome}</strong> para <strong>${prox.nome}</strong>: até ${prox.comodos} cômodos, manutenção de ${fmtTS(prox.manutencao)}.`,
+    custoTexto: `<strong>${fmtTS(custo)}</strong> (diferença de preço) · CD ${cd} (20 + cômodos do novo porte) · 1 ação entre aventuras.`,
+    falha: "O valor dos materiais é gasto. Dá para tentar de novo com outra ação e o mesmo valor.",
     cd, custo
   });
   if (!dados) return;
@@ -259,7 +298,9 @@ export async function acaoReformar(base) {
 
   const dados = await dialogoTeste(base, {
     titulo: `Reformar para ${TIPOS[escolha.novoTipo].nome}`,
-    descricao: `Teste para reformar a base (o valor dos materiais é gasto mesmo em caso de falha).`,
+    efeito: `A base deixa de ser <strong>${atual.nome}</strong> e passa a ser <strong>${TIPOS[escolha.novoTipo].nome}</strong>.`,
+    custoTexto: `<strong>${fmtTS(custo)}</strong> · CD ${cd} (20 + cômodos construídos).`,
+    falha: "O valor dos materiais é gasto.",
     cd, custo
   });
   if (!dados) return;
@@ -315,8 +356,9 @@ export async function acaoConstruirComodo(base, key) {
   const cd = 20 + base.system.maxComodos;
   const dados = await dialogoTeste(base, {
     titulo: `Construir: ${def.nome}`,
-    descricao: `${def.beneficio}.<br>Custo: <strong>${fmtTS(custo)}</strong> · CD ${cd} (20 + cômodos que a base pode ter) · 1 ação entre aventuras.<br>
-      <em>Em caso de falha, o valor é gasto; é possível tentar de novo com outra ação e o custo do cômodo.</em>`,
+    efeito: `${def.beneficio}.`,
+    custoTexto: `<strong>${fmtTS(custo)}</strong> · CD ${cd} (20 + cômodos que a base pode ter) · 1 ação entre aventuras.`,
+    falha: "O valor é gasto. Dá para tentar de novo com outra ação e o custo do cômodo.",
     cd, custo
   });
   if (!dados) return;
@@ -474,7 +516,7 @@ function fmtDecimos(dec) {
 }
 
 /** Soma um valor (em décimos de T$) a uma carteira, em moedas grandes. */
-function somarNaCarteira(d, decimos) {
+export function somarNaCarteira(d, decimos) {
   const carteira = { tc: d?.tc ?? 0, tp: d?.tp ?? 0, to: d?.to ?? 0, tl: d?.tl ?? 0 };
   carteira.to += Math.floor(decimos / 100); decimos %= 100;
   carteira.tp += Math.floor(decimos / 10);

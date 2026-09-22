@@ -1,0 +1,19 @@
+/* ================================================================
+   t20-hayd-bases-e-dominios | negocios.css
+   A ficha de Negócio reaproveita o layout e o tema das Bases
+   (.tormenta20-bases / .t20b-*). Aqui ficam só os complementos.
+   ================================================================ */
+
+.negocio-sheet .t20n-painel-niveis { margin-top: 10px; }
+.negocio-sheet .t20b-tabela tr.t20n-atual td {
+  background: color-mix(in srgb, var(--t20b-destaque) 14%, transparent);
+  font-weight: 700;
+}
+.negocio-sheet .t20b-diario .t20n-diario-largo { grid-column: 1 / -1; }
+.negocio-sheet .t20b-icone.t20n-dono i { color: var(--t20b-destaque); }
+.negocio-sheet .t20b-botao:disabled { opacity: 0.5; cursor: not-allowed; }
+.negocio-sheet .t20b-historico { max-height: 220px; }
+
+.t20b-catalogo .t20b-custo i { color: var(--t20b-destaque, #960505); margin-right: 3px; }
+
+.tema-hayd.negocio-sheet .t20b-tabela tr.t20n-atual td { color: var(--t20b-texto); }

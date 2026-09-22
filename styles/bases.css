@@ -228,28 +228,78 @@ section.t20b-aba.ativa { display: block; }
 .t20b-rateio-total { margin: 0; }
 .t20b-rateio-aviso { margin-left: 8px; font-size: 0.85em; color: #c0392b; }
 
-/* Inventário */
-.t20b-inventario { display: flex; flex-direction: column; gap: 10px; }
-.t20b-moedas-linha { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
-.t20b-moedas-linha label {
-  display: flex; align-items: center; gap: 6px;
-  font-weight: 600; font-size: 0.9em;
+/* Inventário — lista no estilo das fichas de personagem (t20-hayd-ui):
+   cabeçalho por grupo, linhas finas, quantidade compacta, ações em ícone. */
+.t20b-inventario { display: flex; flex-direction: column; gap: 12px; }
+.t20b-inv-moedas {
+  display: flex; align-items: center; gap: 14px; flex-wrap: wrap;
+  padding: 6px 10px; border-bottom: 1px solid var(--t20b-borda);
 }
-.t20b-moedas-linha input { width: 90px; }
+.t20b-inv-moedas-titulo { font-weight: 700; margin-right: auto; }
+.t20b-inv-moedas-titulo i { color: var(--t20b-destaque); margin-right: 4px; }
+.t20b-inv-moedas label {
+  display: flex; align-items: center; gap: 5px;
+  font-size: 0.8em; font-weight: 700; color: var(--t20b-texto-suave);
+}
+.tormenta20-bases .t20b-inv-moedas input { width: 64px; height: 24px; text-align: center; }
+.t20b-inv-moedas-total { font-size: 0.85em; color: var(--t20b-texto-suave); white-space: nowrap; }
+
+.t20b-inv-grupo { border: 1px solid var(--t20b-borda); border-radius: 3px; overflow: hidden; }
+.t20b-inv-cab,
 .t20b-inv-linha {
-  display: flex; align-items: center; gap: 8px; padding: 3px 6px;
-  background: rgba(128, 128, 128, 0.08); border: 1px solid transparent;
-  border-radius: 3px;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 44px 72px 44px;
+  align-items: center; column-gap: 8px;
 }
-.t20b-inv-linha:hover { border-color: var(--t20b-borda); }
-.t20b-inv-linha img { width: 28px; height: 28px; object-fit: cover; border: none; }
-.t20b-inv-nome { flex: 1; cursor: pointer; }
+.t20b-inv-cab {
+  padding: 4px 10px;
+  background: color-mix(in srgb, var(--t20b-destaque) 18%, transparent);
+  border-bottom: 1px solid color-mix(in srgb, var(--t20b-destaque) 60%, transparent);
+  font-size: 0.72em; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase;
+}
+.t20b-inv-titulo i { color: var(--t20b-destaque); margin-right: 5px; }
+.t20b-inv-cont { font-weight: 400; color: var(--t20b-texto-suave); margin-left: 3px; }
+.t20b-inv-col-qtd, .t20b-inv-col-preco { text-align: center; color: var(--t20b-texto-suave); }
+.t20b-inv-col-preco { text-align: right; }
+
+.t20b-inv-lista { list-style: none; margin: 0; padding: 0; }
+.t20b-inv-linha {
+  grid-template-columns: 24px minmax(0, 1fr) 44px 72px 44px;
+  padding: 3px 10px; min-height: 30px;
+  border-bottom: 1px solid color-mix(in srgb, var(--t20b-borda) 50%, transparent);
+  transition: background 120ms ease;
+}
+.t20b-inv-cab { grid-template-columns: minmax(0, 1fr) 44px 72px 44px; }
+.t20b-inv-linha:last-child { border-bottom: none; }
+.t20b-inv-linha:nth-child(even) { background: rgba(128, 128, 128, 0.04); }
+.t20b-inv-linha:hover { background: color-mix(in srgb, var(--t20b-destaque) 12%, transparent); }
+.t20b-inv-linha[draggable="true"] { cursor: grab; }
+.t20b-inv-linha img { width: 24px; height: 24px; object-fit: cover; border: 1px solid var(--t20b-borda); border-radius: 2px; }
+.t20b-inv-nome {
+  cursor: pointer; font-size: 0.92em; font-weight: 600;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
 .t20b-inv-nome:hover { color: var(--t20b-destaque); }
-.t20b-inv-qtd { width: 58px; text-align: center; }
-.t20b-inv-preco {
-  width: 90px; text-align: right; white-space: nowrap;
-  font-size: 0.85em; color: var(--t20b-texto-suave);
+.t20b-inv-qtd { text-align: center; font-size: 0.9em; }
+.tormenta20-bases input.t20b-inv-qtd {
+  width: 100%; height: 22px; padding: 0 2px;
+  background: transparent; border: 1px solid transparent;
 }
+.tormenta20-bases input.t20b-inv-qtd:hover,
+.tormenta20-bases input.t20b-inv-qtd:focus { border-color: var(--t20b-borda); }
+.t20b-inv-qtd::-webkit-inner-spin-button { display: none; }
+.t20b-inv-preco { text-align: right; white-space: nowrap; font-size: 0.82em; color: var(--t20b-texto-suave); }
+.t20b-inv-acoes { display: flex; justify-content: flex-end; gap: 8px; font-size: 0.85em; }
+.t20b-inv-acoes a { color: var(--t20b-texto-suave); cursor: pointer; }
+.t20b-inv-acoes a:hover { color: var(--t20b-destaque); }
+.t20b-inv-acoes a.t20b-perigo:hover { color: var(--t20b-ruim); }
+.t20b-inv-vazio { padding: 6px 10px; font-size: 0.8em; font-style: italic; color: var(--t20b-texto-suave); }
+.t20b-inv-dica { text-align: center; }
+
+/* Diálogo de retirada */
+.t20b-transferir { display: flex; flex-direction: column; gap: 8px; }
+.t20b-transferir p { display: flex; align-items: center; gap: 8px; margin: 0; }
+.t20b-transferir img { width: 32px; height: 32px; border: none; }
 
 /* Diário */
 .t20b-diario { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
@@ -337,7 +387,6 @@ section.t20b-aba.ativa { display: block; }
 .tema-hayd .t20b-morador-img,
 .tema-hayd .t20b-historico-linha,
 .tema-hayd .t20b-rateio-linha,
-.tema-hayd .t20b-inv-linha,
 .tema-hayd .t20b-botao { border-radius: 0; }
 
 /* Header */
@@ -353,11 +402,23 @@ section.t20b-aba.ativa { display: block; }
 /* Painéis e cartões */
 .tema-hayd .t20b-painel h3 { color: var(--t20b-texto); }
 .tema-hayd .t20b-historico-linha { background: rgba(0, 0, 0, 0.25); }
-.tema-hayd .t20b-inv-linha { background: rgba(0, 0, 0, 0.2); }
 .tema-hayd .t20b-rateio-linha { background: rgba(0, 0, 0, 0.15); }
 .tema-hayd .t20b-tabela th { background: color-mix(in srgb, var(--t20b-destaque) 22%, transparent); }
 .tema-hayd .t20b-tabela th, .tema-hayd .t20b-tabela td { color: var(--t20b-texto); }
-.tema-hayd .t20b-moedas-linha label { color: var(--t20b-texto); }
+.tema-hayd .t20b-inv-grupo { border-radius: 0; background: rgba(0, 0, 0, 0.2); }
+.tema-hayd .t20b-inv-cab {
+  background: linear-gradient(180deg, color-mix(in srgb, var(--t20b-destaque) 32%, transparent), color-mix(in srgb, var(--t20b-destaque) 14%, transparent));
+  border-bottom-color: var(--t20b-destaque);
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.55);
+}
+.tema-hayd .t20b-inv-linha:nth-child(even) { background: rgba(255, 255, 255, 0.022); }
+.tema-hayd .t20b-inv-linha:hover { background: color-mix(in srgb, var(--t20b-destaque) 16%, transparent); }
+.tema-hayd .t20b-inv-linha img { border-radius: 0; }
+.tema-hayd .t20b-inv-acoes a:hover { color: var(--t20b-texto); }
+.tormenta20-bases.tema-hayd input.t20b-inv-qtd { background: transparent; border-color: transparent; padding: 0 2px; }
+.tormenta20-bases.tema-hayd input.t20b-inv-qtd:hover,
+.tormenta20-bases.tema-hayd input.t20b-inv-qtd:focus { background: rgba(0, 0, 0, 0.35); border-color: var(--t20b-borda); }
+.tema-hayd .t20b-inv-moedas label { color: var(--t20b-texto-suave); }
 
 /* Campos de formulário */
 .tormenta20-bases.tema-hayd input[type="text"],
@@ -407,3 +468,33 @@ section.t20b-aba.ativa { display: block; }
 .t20b-chat.tema-hayd .t20b-chat-body { color: var(--t20b-texto); }
 .t20b-chat.tema-hayd .t20b-bom { color: #6fbf73; }
 .t20b-chat.tema-hayd .t20b-ruim { color: #e06c5a; }
+
+/* Pedido de teste enviado ao jogador (teste-remoto.mjs) */
+.t20bd-teste-remoto { display: flex; flex-direction: column; gap: 8px; }
+.t20bd-teste-remoto header { display: flex; align-items: center; gap: 10px; }
+.t20bd-teste-remoto header img { width: 42px; height: 42px; object-fit: cover; border: 1px solid var(--color-border, #555); border-radius: 3px; }
+.t20bd-teste-remoto header p { margin: 0; font-size: 1.05em; }
+
+/* Diálogos de teste (construir, ampliar, reformar, nível de negócio) */
+.t20b-dialogo-teste { display: flex; flex-direction: column; gap: 14px; padding: 2px 0 4px; }
+.t20b-resumo { display: flex; flex-direction: column; gap: 8px; }
+.t20b-resumo-desc { margin: 0; }
+.t20b-resumo-linha {
+  display: grid; grid-template-columns: 92px 1fr; gap: 10px; align-items: baseline;
+  padding: 7px 10px; line-height: 1.4;
+  border-left: 3px solid var(--color-border-highlight, #960505);
+  background: rgba(128, 128, 128, 0.08);
+}
+.t20b-resumo-rotulo {
+  font-size: 0.75em; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase;
+  opacity: 0.8; white-space: nowrap;
+}
+.t20b-resumo-rotulo i { margin-right: 4px; }
+.t20b-resumo-falha { border-left-color: var(--color-level-error, #c0392b); }
+.t20b-resumo-falha > div { font-style: italic; }
+.t20b-dialogo-campos { display: grid; grid-template-columns: 1fr 1fr 80px; gap: 10px; }
+.t20b-dialogo-campos .form-group { display: flex; flex-direction: column; align-items: stretch; gap: 4px; margin: 0; }
+.t20b-dialogo-campos .form-group > label { flex: none; font-size: 0.8em; font-weight: 700; line-height: 1.2; }
+.t20b-dialogo-campos .form-group > * { width: 100%; }
+.t20b-dialogo-check { display: flex; align-items: center; gap: 8px; }
+.t20b-dialogo-teste .notes { margin: 0; font-size: 0.8em; opacity: 0.75; }

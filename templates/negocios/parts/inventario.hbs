@@ -1,14 +1,14 @@
 <section class="t20b-aba" data-tab="inventario">
   <div class="t20b-inventario">
     <div class="t20b-inv-moedas">
-      <span class="t20b-inv-moedas-titulo"><i class="fa-solid fa-coins"></i> Caixa do Grupo</span>
+      <span class="t20b-inv-moedas-titulo"><i class="fa-solid fa-coins"></i> Caixa do Negócio</span>
       <label title="Tibar de ouro (vale T$ 10)">TO
         <input type="number" name="system.dinheiro.to" value="{{system.dinheiro.to}}" min="0" step="1"></label>
       <label title="Tibar (moeda de prata)">T$
         <input type="number" name="system.dinheiro.tp" value="{{system.dinheiro.tp}}" min="0" step="1"></label>
       <label title="Tibar de cobre (vale T$ 0,1)">TC
         <input type="number" name="system.dinheiro.tc" value="{{system.dinheiro.tc}}" min="0" step="1"></label>
-      <span class="t20b-inv-moedas-total" title="Valor total das moedas da base">= {{totalMoedas}}</span>
+      <span class="t20b-inv-moedas-total" title="Valor total das moedas do negócio">= {{totalMoedas}}</span>
     </div>
 
     {{#each inventario}}
@@ -21,7 +21,7 @@
       </header>
       <ol class="t20b-inv-lista">
         {{#each itens}}
-        <li class="t20b-inv-linha" data-id="{{id}}" draggable="true" title="Arraste para a ficha de um morador para entregar o item">
+        <li class="t20b-inv-linha" data-id="{{id}}">
           <img src="{{img}}" alt="">
           <a class="t20b-inv-nome" data-action="abrirItem" data-id="{{id}}">{{nome}}</a>
           {{#if @root.editable}}
@@ -31,9 +31,8 @@
           {{/if}}
           <span class="t20b-inv-preco">{{pesoFmt}}</span>
           <span class="t20b-inv-acoes">
-            <a data-action="retirarItem" data-id="{{id}}" title="{{#if @root.ehGM}}Entregar a um morador{{else}}Pegar item{{/if}}"><i class="fa-solid fa-hand-holding"></i></a>
             {{#if @root.editable}}
-            <a class="t20b-perigo" data-action="excluirItem" data-id="{{id}}" title="Excluir da base"><i class="fa-solid fa-trash"></i></a>
+            <a class="t20b-perigo" data-action="excluirItem" data-id="{{id}}" title="Excluir do estoque"><i class="fa-solid fa-trash"></i></a>
             {{/if}}
           </span>
         </li>
@@ -44,6 +43,6 @@
     </div>
     {{/each}}
 
-    <p class="notes t20b-inv-dica"><i class="fa-solid fa-hand-pointer"></i> Arraste itens de fichas ou compêndios para cá para guardá-los na base; arraste um item daqui para a ficha de um morador para entregá-lo.</p>
+    <p class="notes t20b-inv-dica"><i class="fa-solid fa-hand-pointer"></i> Arraste itens de fichas ou compêndios para cá para guardá-los no estoque do negócio.</p>
   </div>
 </section>

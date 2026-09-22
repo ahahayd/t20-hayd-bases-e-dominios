@@ -1,0 +1,16 @@
+<section class="t20b-aba" data-tab="diario">
+  <div class="t20b-diario">
+    <div class="t20b-painel">
+      <h3><i class="fa-solid fa-book-open"></i> História do Negócio</h3>
+      {{formInput campoBiografia value=system.detalhes.biography enriched=biografiaHTML toggled=true height=230}}
+    </div>
+    <div class="t20b-painel">
+      <h3><i class="fa-solid fa-people-group"></i> Empregados</h3>
+      {{formInput campoEmpregados value=system.detalhes.empregados enriched=empregadosHTML toggled=true height=230}}
+    </div>
+    <div class="t20b-painel t20n-diario-largo">
+      <h3><i class="fa-solid fa-note-sticky"></i> Anotações</h3>
+      {{formInput campoNotas value=system.detalhes.notas enriched=notasHTML toggled=true height=200}}
+    </div>
+  </div>
+</section>

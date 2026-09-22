@@ -1,0 +1,83 @@
+<section class="t20b-aba" data-tab="geral">
+  <div class="t20b-colunas">
+    <div class="t20b-painel">
+      <h3><i class="fa-solid fa-shop"></i> Características</h3>
+      <div class="form-group">
+        <label>Ramo <span class="notes">(forja, taverna, alfaiataria…)</span></label>
+        <input type="text" name="system.ramo" value="{{system.ramo}}" placeholder="Empório de Armamentos">
+      </div>
+      <div class="form-group">
+        <label>Localização</label>
+        <input type="text" name="system.localizacao" value="{{system.localizacao}}" placeholder="Valkaria, perto do mercado…">
+      </div>
+      <div class="form-group">
+        <label>Nível <span class="notes">(editar aqui não cobra custo nem faz teste)</span></label>
+        <div class="t20b-inline">
+          <select name="system.nivel" data-dtype="Number">
+            {{#each niveis}}<option value="{{valor}}" {{#if selecionado}}selected{{/if}}>{{rotulo}}</option>{{/each}}
+          </select>
+          {{#if proximo}}
+          <button type="button" class="t20b-botao t20b-primario" data-action="aumentarNivel" title="1 mês de trabalho + custo + teste de Ofício ou Nobreza">
+            {{#if system.fundado}}<i class="fa-solid fa-arrow-trend-up"></i> Aumentar nível{{else}}<i class="fa-solid fa-file-signature"></i> Criar negócio{{/if}}
+          </button>
+          {{/if}}
+        </div>
+        <p class="notes">{{system.categoria.desc}}</p>
+        {{#if proximo}}
+        <p class="notes">
+          {{#if system.fundado}}Nível {{proximo.nivel}}{{else}}Criação{{/if}}: CD <strong>{{proximo.cd}}</strong> · <strong>{{proximo.custoFmt}}</strong> · 1 mês de trabalho{{#if proximo.ajustes}} · <span class="t20b-bom">{{proximo.ajustes}}</span>{{/if}}.
+        </p>
+        {{else}}
+        <p class="notes t20b-bom">Nível máximo alcançado.</p>
+        {{/if}}
+      </div>
+      <div class="t20b-acoes-linha">
+        <button type="button" class="t20b-botao" data-action="sincronizar" title="Recriar os Efeitos Ativos em todos os frequentadores">
+          <i class="fa-solid fa-rotate"></i> Sincronizar benefícios
+        </button>
+        <button type="button" class="t20b-botao t20b-perigo" data-action="limparEfeitos" title="Remover todos os efeitos deste negócio dos frequentadores">
+          <i class="fa-solid fa-eraser"></i> Limpar efeitos
+        </button>
+      </div>
+    </div>
+    <div class="t20b-painel">
+      <h3><i class="fa-solid fa-coins"></i> Caixa do Negócio</h3>
+      <p class="notes">Fundo para custear a expansão do negócio e guardar os rendimentos — são as moedas guardadas no negócio (edite-as na aba Estoque). Saldo: <strong>{{caixaFmt}}</strong> (TO {{system.dinheiro.to}} · T$ {{system.dinheiro.tp}} · TC {{system.dinheiro.tc}}).</p>
+      <div class="t20b-acoes-linha">
+        <button type="button" class="t20b-botao" data-action="ajustarCaixa"><i class="fa-solid fa-plus-minus"></i> Depositar / Gastar</button>
+        {{#if ehGM}}
+        <button type="button" class="t20b-botao t20b-perigo" data-action="limparHistorico" data-tooltip="Apagar todas as movimentações registradas (o saldo não é alterado)">
+          <i class="fa-solid fa-trash"></i> Limpar histórico
+        </button>
+        {{/if}}
+      </div>
+      <div class="t20b-historico">
+        {{#each historico}}
+        <div class="t20b-historico-linha">
+          <span class="t20b-historico-desc" title="Período {{aventura}} · {{data}}{{#if usuario}} · por {{usuario}}{{/if}}">{{desc}}{{#if usuario}} <span class="t20b-historico-user">· {{usuario}}</span>{{/if}}</span>
+          <span class="{{#if positivo}}t20b-bom{{else}}t20b-ruim{{/if}}">{{deltaFmt}}</span>
+        </div>
+        {{else}}
+        <p class="notes">Nenhuma movimentação registrada.</p>
+        {{/each}}
+      </div>
+    </div>
+  </div>
+
+  <div class="t20b-painel t20n-painel-niveis">
+    <h3><i class="fa-solid fa-stairs"></i> Níveis de Negócio</h3>
+    <table class="t20b-tabela">
+      <thead><tr><th>Nível</th><th>Porte</th><th>CD</th><th>Custo</th><th>Rendimento</th><th>Ativos</th></tr></thead>
+      <tbody>
+        {{#each tabelaNiveis}}
+        <tr class="{{#if atual}}t20n-atual{{/if}}"><td>{{nivel}}</td><td>{{categoria}}</td><td>{{cd}}</td><td>{{custo}}</td><td>{{rendimento}}</td><td>{{nivel}}</td></tr>
+        {{/each}}
+      </tbody>
+    </table>
+    <p class="notes">Criar o negócio (nível 1): 1 mês, T$ 1.000 e CD 20. Subir de nível: 1 mês, T$ 1.000 × próximo nível e CD 20 + 2 × próximo nível, com Ofício ou Nobreza. Estúdio reduz a CD em 5; Escritório corta o custo pela metade.</p>
+  </div>
+
+  <footer class="t20b-aviso-regras">
+    Para as regras completas de negócios, consulte o suplemento <em>Tormenta20: Fim dos Tempos</em>.
+  </footer>
+</section>

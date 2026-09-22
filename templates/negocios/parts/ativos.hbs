@@ -1,0 +1,62 @@
+<section class="t20b-aba" data-tab="ativos">
+  <div class="t20b-barra">
+    <span class="t20b-contagem"><i class="fa-solid fa-cubes"></i> {{system.qtdAtivos}}/{{system.maxAtivos}} ativos{{#if vagasAtivos}} · <span class="t20b-bom">{{vagasAtivos}} vaga(s)</span>{{/if}}{{#if qtdExcedentes}} · <span class="t20b-ruim">{{qtdExcedentes}} excedente(s)</span>{{/if}}</span>
+    <span class="t20b-flex"></span>
+    <button type="button" class="t20b-botao" data-action="criarHomebrew" title="Criar ativo personalizado com efeitos próprios">
+      <i class="fa-solid fa-wand-magic-sparkles"></i> Homebrew
+    </button>
+    <button type="button" class="t20b-botao t20b-primario" data-action="abrirCatalogoAtivos" {{#unless podeEscolherAtivo}}disabled title="Sem vagas: um ativo por nível"{{/unless}}>
+      <i class="fa-solid fa-plus"></i> Escolher ativo
+    </button>
+  </div>
+
+  <div class="t20b-cartoes">
+    {{#each ativos}}
+    <article class="t20b-cartao {{#if excedente}}t20b-danificado{{/if}} {{#unless ativoOn}}t20b-inativo{{/unless}}">
+      <header>
+        <strong>{{nome}}{{#if homebrew}} ★{{/if}}</strong>
+        <span class="t20b-flex"></span>
+        {{#if manual}}<span class="t20b-mini" title="Benefício aplicado manualmente"><i class="fa-solid fa-hand"></i></span>{{/if}}
+        {{#if temEfeito}}
+        <button type="button" class="t20b-icone" data-action="alternarAtivo" data-id="{{id}}" title="{{#if ativoOn}}Desligar{{else}}Ligar{{/if}} os efeitos deste ativo">
+          <i class="fa-solid {{#if ativoOn}}fa-toggle-on{{else}}fa-toggle-off{{/if}}"></i>
+        </button>
+        {{/if}}
+        {{#if precisaConfig}}
+        <button type="button" class="t20b-icone" data-action="configurarAtivo" data-id="{{id}}" title="Configurar escolha">
+          <i class="fa-solid fa-gear"></i>
+        </button>
+        {{/if}}
+        <button type="button" class="t20b-icone t20b-perigo" data-action="removerAtivo" data-id="{{id}}" title="Remover ativo">
+          <i class="fa-solid fa-trash"></i>
+        </button>
+      </header>
+      <p class="t20b-beneficio">{{beneficio}}.{{#if nota}} <em>{{nota}}</em>{{/if}}</p>
+      <footer>
+        {{#if excedente}}<span class="t20b-ruim"><i class="fa-solid fa-triangle-exclamation"></i> Acima do limite do nível — sem benefícios</span>{{/if}}
+        {{#if semEscolha}}<span class="t20b-ruim"><i class="fa-solid fa-circle-exclamation"></i> Escolha pendente</span>{{/if}}
+        {{#if escolhaRotulo}}<span class="t20b-mini"><i class="fa-solid fa-check"></i> {{escolhaRotulo}}</span>{{/if}}
+        {{#if espiaoInvalido}}<span class="t20b-ruim"><i class="fa-solid fa-user-secret"></i> Ativo espionado já construído — troque a escolha</span>{{/if}}
+        {{#if conjurador}}<span class="t20b-mini"><i class="fa-solid fa-hat-wizard"></i> Só para conjuradores {{conjurador}}s</span>{{/if}}
+        {{#if prereq}}<span class="t20b-mini"><i class="fa-solid fa-link"></i> {{prereq}}</span>{{/if}}
+      </footer>
+    </article>
+    {{else}}
+    <p class="notes">{{#if system.fundado}}Nenhum ativo escolhido. O negócio recebe um ativo por nível — eles definem o que o negócio é (forja, taverna, alfaiataria…) e os benefícios para o dono e o grupo.{{else}}Crie o negócio na aba Negócio para escolher o primeiro ativo.{{/if}}</p>
+    {{/each}}
+  </div>
+
+  {{#if homebrewAtivos.length}}
+  <div class="t20b-painel t20b-painel-hb">
+    <h3><i class="fa-solid fa-wand-magic-sparkles"></i> Ativos homebrew deste negócio</h3>
+    {{#each homebrewAtivos}}
+    <div class="t20b-historico-linha">
+      <span>★ <strong>{{nome}}</strong> — {{beneficio}}</span>
+      <button type="button" class="t20b-icone t20b-perigo" data-action="excluirHomebrew" data-key="{{key}}" title="Excluir definição">
+        <i class="fa-solid fa-trash"></i>
+      </button>
+    </div>
+    {{/each}}
+  </div>
+  {{/if}}
+</section>

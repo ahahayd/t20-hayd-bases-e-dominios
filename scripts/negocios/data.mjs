@@ -65,6 +65,13 @@ export class NegocioData extends foundry.abstract.TypeDataModel {
     };
   }
 
+  /* O TokenDocument do tormenta20 lê system.attributes.movement sem
+   * checar se attributes existe; sem isso o movimento do token lança erro
+   * e ele volta para a posição original. */
+  prepareBaseData() {
+    this.attributes ??= {};
+  }
+
   /* ---------------------------------------------------------------- */
   prepareDerivedData() {
     /* Stub de atributos: itens do sistema guardados no estoque consultam

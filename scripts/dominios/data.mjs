@@ -76,6 +76,13 @@ export class DominioData extends foundry.abstract.TypeDataModel {
     };
   }
 
+  /* O TokenDocument do tormenta20 lê system.attributes.movement sem
+   * checar se attributes existe; sem isso o movimento do token lança erro
+   * e ele volta para a posição original. */
+  prepareBaseData() {
+    this.attributes ??= {};
+  }
+
   /* ---------------------------------------------------------------- */
   prepareDerivedData() {
     const terreno = TERRENOS[this.terreno.tipo] ?? TERRENOS.planicie;

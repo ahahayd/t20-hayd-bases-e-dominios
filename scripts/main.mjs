@@ -12,6 +12,7 @@
  * Negócios ("negocio") é o terceiro subsistema: tem tipo de ator, ficha e
  * settings próprios, e reaproveita o visual, o caixa e os testes das Bases.
  */
+import './hayd-ui-base.mjs';
 import "./bases/main.mjs";
 import "./dominios/main.mjs";
 import "./negocios/main.mjs";

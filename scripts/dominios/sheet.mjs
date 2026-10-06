@@ -150,7 +150,7 @@ export class DominioSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       });
     }
 
-    const impostosNivel = IMPOSTOS[s.nivel] ?? IMPOSTOS[1];
+    const impostosNivel = IMPOSTOS[Math.clamp(s.nivel, 1, 7)];
 
     return Object.assign(context, {
       actor, system: s,
@@ -286,7 +286,7 @@ export class DominioSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
   static async #cobrarImpostos() {
     const s = this.actor.system;
     if (s.tipo === "mistico" || s.emRevolta) return Acoes.cobrarImpostos(this.actor, "medios");
-    const tab = IMPOSTOS[s.nivel] ?? IMPOSTOS[1];
+    const tab = IMPOSTOS[Math.clamp(s.nivel, 1, 7)];
     const faixa = await DialogV2.wait({
       window: { title: "Etapa 2: Impostos" },
       content: `<p>Escolha a carga tributária (nível ${s.nivel} — ${tab.descricao}):</p>

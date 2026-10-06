@@ -480,7 +480,7 @@ export async function acaoFinancas(dominio, evento = null) {
 export async function acaoGovernar(dominio, evento = null) {
   const s = dominio.system;
   if (s.turno.governarUsada) return ui.notifications.warn("Governar só pode ser usada uma vez por turno.");
-  if (s.nivel >= 7) return ui.notifications.warn("O domínio já está no nível máximo (7).");
+
   if (s.nivel >= s.nivelMaximo)
     return ui.notifications.warn(`O terreno limita o domínio ao nível ${s.nivelMaximo}.`);
 
@@ -911,7 +911,7 @@ export async function cobrarImpostos(dominio, faixa) {
     ganho += s.nivel;
     linhas.push(`<li>Domínio místico: <strong>+${s.nivel} LO</strong> (1 LO por nível).</li>`);
   } else {
-    const tab = IMPOSTOS[s.nivel] ?? IMPOSTOS[1];
+    const tab = IMPOSTOS[Math.clamp(s.nivel, 1, 7)];
     const formula = tab[faixa];
     const r = await rolar(String(formula));
     rolls.push(r);

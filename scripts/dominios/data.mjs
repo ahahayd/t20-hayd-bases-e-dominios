@@ -11,7 +11,7 @@ export class DominioData extends foundry.abstract.TypeDataModel {
   static defineSchema() {
     return {
       tipo: new f.StringField({ initial: "normal", choices: ["normal", "mistico"] }),
-      nivel: new f.NumberField({ initial: 1, min: 0, max: 7, integer: true }),
+      nivel: new f.NumberField({ initial: 1, min: 0, max: 9, integer: true }),
       regenteUuid: new f.StringField({ initial: "" }),
 
       terreno: new f.SchemaField({

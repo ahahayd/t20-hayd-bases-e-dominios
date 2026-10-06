@@ -648,12 +648,12 @@ export class NegocioSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
           <option value="2">Somar (+)</option>
           <option value="5">Sobrepor (=)</option>
         </select>
-        <input type="text" name="valor${i}" placeholder="1 ou +1" style="width:70px">
+        <input type="text" name="valor${i}" placeholder="1 ou +1">
       </div>`).join("");
 
     const dados = await DialogV2.prompt({
       window: { title: "Criar Ativo Homebrew" },
-      position: { width: 560 },
+      position: { width: 640 },
       content: `
         <div class="t20b-scroll">
         <datalist id="t20n-caminhos">${datalist}</datalist>

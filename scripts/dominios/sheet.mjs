@@ -460,7 +460,7 @@ export class DominioSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
           <option value="2">Somar (+)</option>
           <option value="5">Sobrepor (=)</option>
         </select>
-        <input type="text" name="valor${i}" placeholder="1 ou +1" style="width:70px">
+        <input type="text" name="valor${i}" placeholder="1 ou +1">
       </div>`).join("");
 
     const conteudo = `
@@ -485,7 +485,7 @@ export class DominioSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
 
     const dados = await DialogV2.prompt({
       window: { title: "Criar Construção Homebrew" },
-      position: { width: 560 },
+      position: { width: 640 },
       content: conteudo,
       ok: { label: "Criar", callback: (ev, btn) => new foundry.applications.ux.FormDataExtended(btn.form).object }
     }).catch(() => null);

@@ -326,8 +326,20 @@ section.t20b-aba.ativa { display: block; }
 .t20b-catalogo .t20b-custo { white-space: nowrap; opacity: 0.8; }
 .t20b-catalogo .t20b-beneficio { font-size: 0.83em; opacity: 0.85; }
 .t20b-catalogo .t20b-erro { font-size: 0.78em; color: #c0392b; }
-.t20b-linha-efeito { display: flex; gap: 4px; margin-bottom: 4px; }
-.t20b-linha-efeito input[type="text"]:first-child { flex: 1; }
+/* O primeiro campo é o CAMINHO do sistema
+   ("system.pericias.luta.bonus") e precisa ser o maior da linha. Em flex ele
+   dividia espaço com o <select>, que tem largura própria pelo texto das
+   opções, e sobrava uma fresta para o caminho. Em grade, cada coluna tem o
+   tamanho que o conteúdo pede: caminho largo, modo pelo texto, valor curto. */
+.t20b-linha-efeito {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, auto) 84px;
+  align-items: center;
+  gap: var(--t20g-e2, 6px);
+  margin-bottom: var(--t20g-e2, 6px);
+}
+.t20b-linha-efeito > * { width: 100%; min-width: 0; }
+.t20b-linha-efeito input[type="text"]:first-child { font-family: var(--font-mono, monospace); font-size: 0.75rem; }
 .t20b-fieldset { border: 1px solid rgba(128,128,128,0.35); padding: 8px; }
 .t20b-fieldset legend { font-size: 0.85em; padding: 0 4px; }
 

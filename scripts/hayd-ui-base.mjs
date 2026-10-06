@@ -1,28 +1,38 @@
 /**
- * Marca as janelas deste módulo com `hayd-ui`, a classe de onde pendem os
+ * Marca as janelas DESTE módulo com `hayd-ui`, a classe de onde pendem os
  * tokens e as primitivas de `styles/hayd-ui-base.css`.
  *
- * O arquivo de estilo é o MESMO nos módulos da família (cópia byte a byte,
- * não referência cruzada): nenhum módulo pode depender de outro estar
- * instalado para ficar apresentável.
+ * O critério é "a janela é nossa", e não "tem markup nosso dentro".
  *
- * O elemento sai de `app.element`, e não do segundo argumento do hook: há
- * fichas que chegam aqui com o elemento de uma PARTE (já vi um <button> do
- * cabeçalho), e marcar a parte em vez da janela não leva os tokens a lugar
- * nenhum. `app.element` é sempre a raiz.
+ * A diferença importa: um módulo que injeta um botão na ficha do sistema, ou
+ * uma seção na tela de configurações do Foundry, deixa markup dele dentro de
+ * uma janela que é DOS OUTROS. Marcar por conteúdo acabava aplicando a base
+ * visual na barra lateral, no chat, no diretório de atores e na tela de
+ * configurações do core — que não são nossas para redesenhar.
  *
- * O teste é a presença de markup deste módulo dentro da janela. É um
- * `querySelector` por render de janela, e nada mais: nenhuma observação
- * contínua, nenhum trabalho por quadro.
+ * Então: só um diálogo criado por nós (DialogV2 com markup do módulo; os
+ * diálogos do core nunca têm) ou uma das janelas da lista explícita abaixo.
+ *
+ * O elemento sai de `app.element`: há fichas que chegam ao hook com o
+ * elemento de uma PARTE (já vi um <button> do cabeçalho), e marcar a parte
+ * não leva os tokens a lugar nenhum.
  */
 
 const CLASSE = 'hayd-ui';
 const MARCADOR = '[class*="t20b-"], [class*="t20d-"], [class*="t20bd-"]';
+/** Janelas próprias do módulo, pelo nome da classe da aplicação. */
+const JANELAS_PROPRIAS = new Set(['BaseSheet', 'DominioSheet', 'NegocioSheet']);
+
+function ehNossa(app, raiz) {
+  if (JANELAS_PROPRIAS.has(app?.constructor?.name)) return true;
+  const ehDialogo = app instanceof foundry.applications.api.DialogV2;
+  return ehDialogo && (raiz.matches(MARCADOR) || !!raiz.querySelector(MARCADOR));
+}
 
 function marcar(app, elemento) {
   const raiz = app?.element ?? elemento?.[0] ?? elemento;
   if (!(raiz instanceof HTMLElement) || raiz.classList.contains(CLASSE)) return;
-  if (!raiz.matches(MARCADOR) && !raiz.querySelector(MARCADOR)) return;
+  if (!ehNossa(app, raiz)) return;
   raiz.classList.add(CLASSE);
 }
 

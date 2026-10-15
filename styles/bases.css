@@ -810,3 +810,21 @@ section.t20b-aba.ativa { display: block; }
    aí a cor não é enfeite, é o estado. */
 .hayd-ui .t20b-cartao.t20b-danificado,
 .hayd-ui .t20d-cartao.t20d-danificado { border-left-color: var(--t20g-perigo); }
+
+/* Diálogos longos (catálogos de cômodos, mobílias, construções…) precisam
+   rolar. A regra de "Diálogo v1" do hayd-ui-base — carregada também pelos
+   outros módulos da família — pega o DialogV2 pela classe .dialog e tira a
+   rolagem da janela. Aqui devolvemos o comportamento padrão só para os
+   nossos diálogos (uma classe a mais vence a regra da base). */
+.hayd-ui.dialog.application:has(.dialog-content :is([class*="t20b-"], [class*="t20d-"], [class*="t20n-"])) .window-content {
+  overflow: hidden;
+}
+.hayd-ui.dialog.application:has(.dialog-content :is([class*="t20b-"], [class*="t20d-"], [class*="t20n-"])) .dialog-content {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+}
+
+/* Aviso em destaque nos cartões e catálogos (ex.: onde escolher o Ofício da Oficina) */
+.t20b-aviso { display: block; margin: 2px 0 0; font-size: 0.83em; color: var(--t20b-destaque, var(--color-text-hyperlink)); }
+.t20b-aviso i { margin-right: 2px; }

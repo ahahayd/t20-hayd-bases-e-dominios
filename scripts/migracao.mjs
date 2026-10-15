@@ -183,9 +183,31 @@ Hooks.once("init", () => {
   });
 });
 
+/**
+ * Versões até a 1.2.0 aplicavam a Oficina (Base, Domínio e Negócio) em
+ * system.pericias.ofic, perícia que não existe no T20: a ficha do personagem
+ * ganhava uma perícia sem rótulo e a lista de perícias deixava de renderizar.
+ * Remove esses efeitos; agora o Ofício é uma escolha de cada personagem.
+ */
+async function removerEfeitosOficInvalidos() {
+  let total = 0;
+  for (const ator of game.actors) {
+    const ids = ator.effects
+      .filter(e => e.flags?.[MODULO] && e.changes.some(c => c.key?.startsWith("system.pericias.ofic.")))
+      .map(e => e.id);
+    if (!ids.length) continue;
+    await ator.deleteEmbeddedDocuments("ActiveEffect", ids);
+    total += ids.length;
+  }
+  if (total) {
+    ui.notifications.warn(`T20 Hayd Bases e Domínios: ${total} efeito(s) de Oficina inválido(s) removido(s). Cada personagem agora escolhe o próprio Ofício em "Benefícios" (morador da Base / frequentador do Negócio); no Domínio, pela engrenagem da construção.`, { permanent: true });
+  }
+}
+
 Hooks.once("ready", async () => {
   if (game.user !== game.users.activeGM) return;
 
+  await removerEfeitosOficInvalidos().catch(err => console.error(`${MODULO} | Falha ao limpar efeitos de Oficina.`, err));
   const { totalMigrados, configMigrada } = await executarMigracao();
 
   const basesAtivo = game.modules.get("t20-hayd-bases")?.active === true;

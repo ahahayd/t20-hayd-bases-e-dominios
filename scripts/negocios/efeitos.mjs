@@ -66,7 +66,7 @@ function novoEfeitoUso(negocio, nome, descricao, uso, items, origem) {
 }
 
 /** Efeitos de um único ativo (a Espionagem Industrial reaproveita esta função). */
-function efeitosDoAtivo(negocio, def, escolha, origem, conjurador, sufixo = "") {
+function efeitosDoAtivo(negocio, def, escolha, origem, conjurador, sufixo = "", oficio = null) {
   const efeitos = [];
   const nome = `${def.nome}${sufixo}`;
 
@@ -83,6 +83,11 @@ function efeitosDoAtivo(negocio, def, escolha, origem, conjurador, sufixo = "") 
 
   let changes = bloco.changes ? foundry.utils.deepClone(bloco.changes) : [];
   let rotulo = nome;
+  if (bloco.oficioPorFrequentador) {
+    if (!oficio) return efeitos;
+    changes = [{ key: `system.pericias.${oficio}.bonus`, mode: ADD, value: String(bloco.bonus ?? 1) }];
+    rotulo = `${nome} (${labelPericia(oficio)})`;
+  }
   if (bloco.escolha === "social") {
     if (!escolha) return efeitos;
     changes = [{ key: `system.pericias.${escolha}.bonus`, mode: ADD, value: "1" }];
@@ -99,7 +104,7 @@ function efeitosDoAtivo(negocio, def, escolha, origem, conjurador, sufixo = "") 
  * Lista de efeitos que UM frequentador deve receber. O ator é usado para
  * saber se ele é conjurador arcano/divino (Altar e Círculo de Poder).
  */
-export function montarEfeitosPara(negocio, ator) {
+export function montarEfeitosPara(negocio, ator, oficio = null) {
   const s = negocio.system;
   const cat = obterAtivos(negocio);
   const conjurador = tipoConjurador(ator);
@@ -115,12 +120,19 @@ export function montarEfeitosPara(negocio, ator) {
       const alvo = cat[entrada.escolha];
       if (!alvo || s.possuiAtivo(entrada.escolha) || alvo.escolha === "ativo") continue;
       efeitos.push(...efeitosDoAtivo(negocio, alvo, entrada.escolhaSub, `${origem}:espionagem`,
-        conjurador, " (Espionagem)"));
+        conjurador, " (Espionagem)", oficio));
       continue;
     }
-    efeitos.push(...efeitosDoAtivo(negocio, def, entrada.escolha, origem, conjurador));
+    efeitos.push(...efeitosDoAtivo(negocio, def, entrada.escolha, origem, conjurador, "", oficio));
   }
   return efeitos;
+}
+
+/** O negócio tem um ativo funcionando cujo bônus vai no Ofício de cada frequentador? */
+export function temOficioPorFrequentador(negocio) {
+  const s = negocio.system;
+  const cat = obterAtivos(negocio);
+  return s.ativos.some(a => a.ativo !== false && !s.ativosExcedentes.has(a.id) && cat[a.key]?.efeito?.oficioPorFrequentador);
 }
 
 async function limparEfeitosDe(negocio, ator) {
@@ -137,7 +149,7 @@ export async function sincronizarEfeitos(negocio, { silencioso = false } = {}) {
     const removidos = await limparEfeitosDe(negocio, ator);
     if (freq.receberEfeitos === false) return { removidos, criados: 0, conta: false };
     const desativados = new Set(freq.beneficiosDesativados ?? []);
-    const efeitos = montarEfeitosPara(negocio, ator)
+    const efeitos = montarEfeitosPara(negocio, ator, freq.oficio)
       .filter(efeito => !desativados.has(efeito.flags?.[MODULO]?.beneficioId));
     if (efeitos.length) await ator.createEmbeddedDocuments("ActiveEffect", efeitos);
     return { removidos, criados: efeitos.length, conta: true };

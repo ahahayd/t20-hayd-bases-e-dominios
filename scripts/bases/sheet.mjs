@@ -5,11 +5,11 @@
 import {
   MODULO, PORTES, ORDEM_PORTES, TIPOS, TIPOS_CAPITAO, CUSTO_COMODO,
   CAMINHOS_SUGERIDOS, MODOS_EFEITO, rankPorte,
-  obterComodos, obterMobilias, labelPericia,
+  obterComodos, obterMobilias, labelPericia, seletorOficio,
   temaHayd, corDestaqueAtor
 } from "./catalogo.mjs";
 import * as Acoes from "./acoes.mjs";
-import { sincronizarEfeitos, removerEfeitos, obterMorador, montarEfeitosPara } from "./efeitos.mjs";
+import { sincronizarEfeitos, removerEfeitos, obterMorador, montarEfeitosPara, temOficioPorMorador } from "./efeitos.mjs";
 import { abrirSeletorCor } from "../cor-ficha.mjs";
 import { retirarItem, guardarItem, CHAVE_ARRASTE } from "./transferencia.mjs";
 
@@ -148,7 +148,8 @@ export class BaseSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
         ...c,
         nome: def.nome ?? c.key,
         beneficio: def.beneficio ?? "",
-        temEfeito: !!(def.efeito?.changes?.length || def.efeitosUso?.length || def.efeito?.escolha || def.escolha === "suite" || c.key === "suite"),
+        aviso: def.aviso ?? null,
+        temEfeito: !!(def.efeito?.changes?.length || def.efeitosUso?.length || def.efeito?.escolha || def.efeito?.oficioPorMorador || def.escolha === "suite" || c.key === "suite"),
         manual: !!def.manual,
         seguranca: def.seguranca ?? 0,
         capacidade: def.capacidade ?? 1,
@@ -174,6 +175,7 @@ export class BaseSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
         ...m,
         nome: def.nome ?? m.key,
         beneficio: def.beneficio ?? "",
+        aviso: def.aviso ?? null,
         preco: def.preco ?? 0,
         localNome,
         comodoDanificado: !!com?.danificado,
@@ -440,6 +442,7 @@ export class BaseSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
           <span class="t20b-custo">${Acoes.fmtTS(custo)}</span>
         </button>
         <span class="t20b-beneficio">${def.beneficio}</span>
+        ${def.aviso ? `<span class="t20b-aviso"><i class="fa-solid fa-circle-info"></i> <strong>${def.aviso}</strong></span>` : ""}
         ${erro ? `<span class="t20b-erro">${erro}</span>` : ""}
       </li>`;
     }
@@ -551,6 +554,7 @@ export class BaseSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
           <span class="t20b-custo">${Acoes.fmtTS(def.preco ?? 0)}</span>
         </button>
         <span class="t20b-beneficio">${def.beneficio}</span>
+        ${def.aviso ? `<span class="t20b-aviso"><i class="fa-solid fa-circle-info"></i> <strong>${def.aviso}</strong></span>` : ""}
         ${erro ? `<span class="t20b-erro">${erro}</span>` : ""}
       </li>`;
     }
@@ -658,7 +662,8 @@ export class BaseSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     if (!morador) return;
 
     const efeitos = montarEfeitosPara(this.actor, uuid);
-    if (!efeitos.length) {
+    const escolheOficio = temOficioPorMorador(this.actor);
+    if (!efeitos.length && !escolheOficio) {
       await DialogV2.wait({
         window: { title: "Benefícios deste morador" },
         content: `<p>Nenhum efeito automatizável no momento.</p><p class="notes">Benefícios marcados como manuais nas descrições não geram efeitos e devem ser aplicados à mão.</p>`,
@@ -690,21 +695,26 @@ export class BaseSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     const avisoGeral = morador.receberEfeitos === false
       ? `<p class="notification warning"><i class="fa-solid fa-triangle-exclamation"></i> O recebimento de benefícios está desativado para este morador. As escolhas abaixo serão salvas, mas só terão efeito quando o interruptor geral for ligado.</p>`
       : "";
-    const habilitados = await DialogV2.prompt({
+    const resposta = await DialogV2.prompt({
       window: { title: "Benefícios deste morador" },
       position: { width: 520 },
       classes: ["tormenta20-bases"],
-      content: `${avisoGeral}<ul class="t20b-beneficios-lista">${linhas}</ul><p class="notes">Desmarque um benefício para removê-lo apenas deste morador. Benefícios manuais descritos na ficha não aparecem nesta lista.</p>`,
+      content: `${avisoGeral}${escolheOficio ? seletorOficio(morador.oficio) : ""}<ul class="t20b-beneficios-lista">${linhas}</ul><p class="notes">Desmarque um benefício para removê-lo apenas deste morador. Benefícios manuais descritos na ficha não aparecem nesta lista.</p>`,
       ok: {
         label: "Aplicar",
         icon: "fa-solid fa-check",
-        callback: (_event, button) => new Set(
-          [...button.form.querySelectorAll("input[data-beneficio-index]:checked")]
-            .map(input => Number(input.dataset.beneficioIndex))
-        )
+        callback: (_event, button) => ({
+          habilitados: new Set(
+            [...button.form.querySelectorAll("input[data-beneficio-index]:checked")]
+              .map(input => Number(input.dataset.beneficioIndex))
+          ),
+          oficio: button.form.elements.oficio?.value
+        })
       }
     }).catch(() => null);
-    if (!habilitados) return;
+    if (!resposta) return;
+    const { habilitados } = resposta;
+    const oficio = escolheOficio ? (resposta.oficio || null) : morador.oficio ?? null;
 
     const idsAtuais = new Set(efeitos.map(efeito => efeito.flags?.[MODULO]?.beneficioId).filter(Boolean));
     const preservados = [...desativadosAtuais].filter(id => !idsAtuais.has(id));
@@ -713,7 +723,7 @@ export class BaseSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       .map(efeito => efeito.flags[MODULO].beneficioId);
     const residentes = this.actor.system.residentes.map(residente =>
       residente.uuid === uuid
-        ? { ...residente, beneficiosDesativados: [...preservados, ...novosDesativados] }
+        ? { ...residente, oficio, beneficiosDesativados: [...preservados, ...novosDesativados] }
         : residente
     );
     await this.actor.update({ "system.residentes": residentes });

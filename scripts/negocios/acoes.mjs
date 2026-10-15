@@ -10,6 +10,7 @@ import {
   MODULO, NIVEL_MAXIMO, PERICIAS_NEGOCIO, OPCOES_SOCIAL,
   obterAtivos, labelPericia, rotuloEscolha
 } from "./catalogo.mjs";
+import { listaOficios } from "../bases/catalogo.mjs";
 import { sincronizarEfeitos, obterFrequentador } from "./efeitos.mjs";
 import {
   fmtTS, cartao, movimentarCaixa, saldoCaixaDecimos, pagarCusto,
@@ -48,6 +49,7 @@ function opcoesFrequentadores(negocio, selecionado = null) {
 
 function opcoesPericiaNegocio() {
   return PERICIAS_NEGOCIO
+    .flatMap(k => k === "ofic" ? listaOficios() : [k])
     .map(k => `<option value="${k}">${labelPericia(k)}</option>`)
     .join("");
 }

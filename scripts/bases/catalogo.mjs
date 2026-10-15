@@ -276,8 +276,9 @@ export const COMODOS = {
       desc: "1×/aventura (requer treino em Misticismo): rola dois d20 e usa o melhor" }] },
   "oficina-de-trabalho": { nome: "Oficina de Trabalho",
     beneficio: "Cada residente recebe +1 em um Ofício a sua escolha (pode trocar no início de cada aventura)",
-    efeito: fx([{ key: "system.pericias.ofic.bonus", mode: ADD, value: "1" }],
-      { nota: "Vale para um Ofício escolhido pelo residente (troca a cada aventura)." }),
+    aviso: "Cada morador escolhe o seu Ofício em: aba Moradores → Benefícios → Ofício da Oficina",
+    efeito: fx([], { oficioPorMorador: true, bonus: 1,
+      nota: "Cada morador escolhe o seu Ofício em Benefícios do morador (troca a cada aventura)." }),
     porAventura: "Escolher o Ofício beneficiado pela Oficina" },
   "oratorio": { nome: "Oratório",
     beneficio: "Os residentes recebem +1 em Religião",
@@ -378,8 +379,9 @@ export const MOBILIAS = {
     efeito: fx([{ key: "system.attributes.carga.bonus", mode: ADD, value: "1" }]) },
   "bigorna": { nome: "Bigorna", preco: 500, locais: ["oficina-de-trabalho", "forjaria"],
     beneficio: "Na oficina, aumenta o bônus em Ofício para +3; na forjaria, aumenta o bônus em dano para +2",
+    aviso: "Na oficina, vale para o Ofício que cada morador escolheu em: aba Moradores → Benefícios → Ofício da Oficina",
     efeitoPorLocal: {
-      "oficina-de-trabalho": fx([{ key: "system.pericias.ofic.bonus", mode: ADD, value: "2" }]),
+      "oficina-de-trabalho": fx([], { oficioPorMorador: true, bonus: 2 }),
       "forjaria": { manual: true, nota: "O +1 adicional de dano aparece como efeito de uso (soma-se ao da Forjaria: total +2)." }
     },
     efeitosUsoPorLocal: {
@@ -481,6 +483,28 @@ export const PERICIAS_FALLBACK = {
 
 export function labelPericia(key) {
   return CONFIG?.T20?.pericias?.[key]?.label ?? PERICIAS_FALLBACK[key] ?? key;
+}
+
+/**
+ * Perícias de Ofício do sistema. No T20 não existe uma perícia "ofic":
+ * cada Ofício (Armeiro, Culinária...) é uma perícia própria marcada como
+ * crafting. Um efeito em system.pericias.ofic cria uma perícia fantasma
+ * sem rótulo que quebra a lista de perícias da ficha.
+ */
+export function listaOficios() {
+  const per = CONFIG?.T20?.pericias ?? {};
+  const oficios = CONFIG?.T20?.oficios ?? Object.keys(per).filter(k => per[k]?.crafting);
+  return [...oficios].sort((a, b) => labelPericia(a).localeCompare(labelPericia(b), "pt-BR"));
+}
+
+/** Campo de Ofício individual (morador da base ou frequentador do negócio). */
+export function seletorOficio(atual) {
+  const opcoes = listaOficios()
+    .map(k => `<option value="${k}" ${atual === k ? "selected" : ""}>${labelPericia(k)}</option>`)
+    .join("");
+  return `<div class="form-group"><label>Ofício da Oficina</label>
+    <select name="oficio"><option value="">— escolha —</option>${opcoes}</select></div>
+    <p class="notes">Escolha individual: recebe o bônus da Oficina (e da Bigorna, se houver). Pode trocar no início de cada aventura.</p>`;
 }
 
 export const TIPOS_CAPITAO = ["Atirador", "Combatente", "Fortão", "Guardião"];

@@ -33,6 +33,10 @@ function montarEfeitoConstrucao(dominio, entrada) {
     if (!entrada.escolha) return null; // sem escolha configurada, sem efeito
     changes = [{ key: `system.pericias.${entrada.escolha}.treinado`, mode: OVERRIDE, value: "true" }];
   }
+  if (def.efeito.escolha === "oficio") {
+    if (!entrada.escolha) return null;
+    changes = [{ key: `system.pericias.${entrada.escolha}.bonus`, mode: ADD, value: String(def.efeito.bonus ?? 1) }];
+  }
   if (!changes.length) return null;
 
   return {

@@ -34,6 +34,7 @@
         </button>
       </header>
       <p class="t20b-beneficio">{{beneficio}}.</p>
+      {{#if aviso}}<p class="t20b-aviso"><i class="fa-solid fa-circle-info"></i> <strong>{{aviso}}</strong></p>{{/if}}
       <footer>
         <span class="t20b-mini"><i class="fa-solid fa-location-dot"></i> {{localNome}}</span>
         {{#if comodoDanificado}}<span class="t20b-ruim"><i class="fa-solid fa-triangle-exclamation"></i> Cômodo danificado — mobília inerte</span>{{/if}}

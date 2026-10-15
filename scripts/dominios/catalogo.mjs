@@ -279,8 +279,9 @@ export const CONSTRUCOES = {
     efeito: fx([{ key: "system.pericias.vont.bonus", mode: ADD, value: "1" }]) },
 
   "oficina": { nome: "Oficina", categoria: "nobreza", custo: 2,
-    beneficio: "+2 em Ofício",
-    efeito: fx([{ key: "system.pericias.ofic.bonus", mode: ADD, value: "2" }]) },
+    beneficio: "+2 em um Ofício",
+    aviso: "Escolha o Ofício em: aba Construções → engrenagem da Oficina",
+    efeito: fx([], { escolha: "oficio", bonus: 2 }) },
 
   "sede-de-guilda": { nome: "Sede de Guilda", categoria: "nobreza", custo: 15, prereqs: ["oficina"],
     beneficio: "No início de cada aventura, um item recebe uma melhoria (máx. 4; manual)", efeito: null },
@@ -549,7 +550,7 @@ export const PERICIAS_FALLBACK = {
   inti: "Intimidação", intu: "Intuição", inve: "Investigação", mist: "Misticismo",
   nobr: "Nobreza", reli: "Religião", sobr: "Sobrevivência",
   fort: "Fortitude", refl: "Reflexos", vont: "Vontade", inic: "Iniciativa",
-  perc: "Percepção", ofic: "Ofício"
+  perc: "Percepção"
 };
 
 export function labelPericia(key) {

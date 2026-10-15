@@ -37,6 +37,7 @@
         </button>
       </header>
       <p class="t20b-beneficio">{{beneficio}}.</p>
+      {{#if aviso}}<p class="t20b-aviso"><i class="fa-solid fa-circle-info"></i> <strong>{{aviso}}</strong></p>{{/if}}
       <footer>
         {{#if danificado}}<span class="t20b-ruim"><i class="fa-solid fa-triangle-exclamation"></i> Danificado — sem bônus até o reparo</span>{{/if}}
         {{#if escolhaRotulo}}<span class="t20b-mini"><i class="fa-solid fa-check"></i> {{escolhaRotulo}}</span>{{/if}}

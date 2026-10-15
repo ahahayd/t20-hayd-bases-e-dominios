@@ -32,6 +32,7 @@
         </button>
       </header>
       <p class="t20b-beneficio">{{beneficio}}.{{#if nota}} <em>{{nota}}</em>{{/if}}</p>
+      {{#if aviso}}<p class="t20b-aviso"><i class="fa-solid fa-circle-info"></i> <strong>{{aviso}}</strong></p>{{/if}}
       <footer>
         {{#if excedente}}<span class="t20b-ruim"><i class="fa-solid fa-triangle-exclamation"></i> Acima do limite do nível — sem benefícios</span>{{/if}}
         {{#if semEscolha}}<span class="t20b-ruim"><i class="fa-solid fa-circle-exclamation"></i> Escolha pendente</span>{{/if}}

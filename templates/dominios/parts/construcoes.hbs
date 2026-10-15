@@ -17,6 +17,7 @@
             <strong>{{this.nome}}{{#if this.homebrew}} ★{{/if}}</strong>
             <small>{{this.categoria}}{{#if this.fortificacao}} · Fortificação +{{this.fortificacao}}{{/if}}{{#if this.renda}} · gera renda{{/if}}</small>
             <span>{{this.beneficio}}{{#if this.escolhaRotulo}} — <em>{{this.escolhaRotulo}}</em>{{/if}}</span>
+            {{#if this.aviso}}<span class="t20b-aviso"><i class="fa-solid fa-circle-info"></i> <strong>{{this.aviso}}</strong></span>{{/if}}
           </div>
           <div class="t20d-cartao-botoes">
             {{#if this.precisaEscolha}}

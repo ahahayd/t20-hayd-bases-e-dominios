@@ -8,6 +8,7 @@ import {
   UNIDADES, ACOES, labelPericia, temaHayd, corDominio,
   obterConstrucoes, caminhosSugeridos
 } from "./catalogo.mjs";
+import { listaOficios } from "../bases/catalogo.mjs";
 import * as Acoes from "./acoes.mjs";
 import { sincronizarEfeitos, removerEfeitos, obterRegente } from "./efeitos.mjs";
 import { criarTabelas } from "./tabelas.mjs";
@@ -108,9 +109,10 @@ export class DominioSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
         nome: def.nome ?? c.key,
         homebrew: !!def.homebrew,
         beneficio: def.beneficio ?? "",
+        aviso: def.aviso ?? null,
         categoria: CATEGORIAS_CONSTRUCAO[def.categoria]?.nome ?? "",
         temEfeito: !!def.efeito,
-        precisaEscolha: def.efeito?.escolha === "pericia",
+        precisaEscolha: ["pericia", "oficio"].includes(def.efeito?.escolha),
         escolhaRotulo: c.escolha ? labelPericia(c.escolha) : null,
         renda: !!def.renda,
         fortificacao: def.fortificacao ?? 0
@@ -370,6 +372,7 @@ export class DominioSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
             <strong>${c.nome}${c.homebrew ? " ★" : ""}</strong> <span class="t20d-custo">${c.custo} LO</span>
           </button>
           <span class="t20d-beneficio">${c.beneficio}</span>
+          ${c.aviso ? `<span class="t20b-aviso"><i class="fa-solid fa-circle-info"></i> <strong>${c.aviso}</strong></span>` : ""}
           ${c.erro ? `<span class="t20d-erro">${c.erro}</span>` : ""}
         </li>`;
       }
@@ -425,14 +428,15 @@ export class DominioSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     const def = obterConstrucoes(this.actor)[entrada?.key];
     if (!def?.efeito?.escolha) return;
 
-    const pericias = CONFIG?.T20?.pericias ?? {};
-    const opcoes = Object.entries(pericias)
-      .map(([k, v]) => `<option value="${k}" ${entrada.escolha === k ? "selected" : ""}>${v.label ?? k}</option>`)
+    const ehOficio = def.efeito.escolha === "oficio";
+    const chaves = ehOficio ? listaOficios() : Object.keys(CONFIG?.T20?.pericias ?? {});
+    const opcoes = chaves
+      .map(k => `<option value="${k}" ${entrada.escolha === k ? "selected" : ""}>${labelPericia(k)}</option>`)
       .join("");
     const dados = await DialogV2.prompt({
       window: { title: def.nome },
       content: `<p>${def.beneficio}.</p>
-        <div class="form-group"><label>Perícia</label><select name="pericia">${opcoes}</select></div>`,
+        <div class="form-group"><label>${ehOficio ? "Ofício" : "Perícia"}</label><select name="pericia">${opcoes}</select></div>`,
       ok: { label: "Salvar", callback: (event, button) => new foundry.applications.ux.FormDataExtended(button.form).object }
     }).catch(() => null);
     if (!dados) return;

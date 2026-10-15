@@ -10,8 +10,9 @@ import {
 import * as Acoes from "./acoes.mjs";
 import {
   sincronizarEfeitos, removerEfeitos, obterFrequentador,
-  montarEfeitosPara, caminhosDeOutrasEstruturas
+  montarEfeitosPara, caminhosDeOutrasEstruturas, temOficioPorFrequentador
 } from "./efeitos.mjs";
+import { seletorOficio } from "../bases/catalogo.mjs";
 import { abrirSeletorCor } from "../cor-ficha.mjs";
 import { fmtPeso } from "../bases/acoes.mjs";
 import { guardarItem } from "../bases/transferencia.mjs";
@@ -138,6 +139,7 @@ export class NegocioSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
         ordem: indice + 1,
         nome: def.nome ?? a.key,
         beneficio: def.beneficio ?? "",
+        aviso: def.aviso ?? null,
         nota: def.nota ?? null,
         prereq: [
           def.prereqNivel ? `nível ${def.prereqNivel}` : null,
@@ -435,6 +437,7 @@ export class NegocioSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
           <span class="t20b-custo">${auto ? '<i class="fa-solid fa-bolt" title="Automatizado"></i>' : '<i class="fa-solid fa-hand" title="Aplicado manualmente"></i>'}${tags.length ? ` Pré-req.: ${escapar(tags.join(", "))}` : ""}</span>
         </button>
         <span class="t20b-beneficio">${def.beneficio}.</span>
+        ${def.aviso ? `<span class="t20b-aviso"><i class="fa-solid fa-circle-info"></i> <strong>${def.aviso}</strong></span>` : ""}
         ${erro ? `<span class="t20b-erro">${erro}</span>` : ""}
       </li>`;
     }
@@ -549,8 +552,9 @@ export class NegocioSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     if (!freq) return;
     const ator = await obterFrequentador(uuid);
 
-    const efeitos = montarEfeitosPara(this.actor, ator);
-    if (!efeitos.length) {
+    const efeitos = montarEfeitosPara(this.actor, ator, freq.oficio);
+    const escolheOficio = temOficioPorFrequentador(this.actor);
+    if (!efeitos.length && !escolheOficio) {
       await DialogV2.wait({
         window: { title: "Benefícios deste frequentador" },
         content: `<p>Nenhum efeito automatizável no momento.</p><p class="notes">Ativos marcados como manuais devem ser aplicados à mão. Altar e Círculo de Poder só valem para conjuradores divinos e arcanos, respectivamente.</p>`,
@@ -586,21 +590,26 @@ export class NegocioSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     const avisoGeral = freq.receberEfeitos === false
       ? `<p class="notification warning"><i class="fa-solid fa-triangle-exclamation"></i> Este frequentador está sem acesso ao negócio. As escolhas serão salvas, mas só terão efeito quando o interruptor for ligado.</p>`
       : "";
-    const habilitados = await DialogV2.prompt({
+    const resposta = await DialogV2.prompt({
       window: { title: "Benefícios deste frequentador" },
       position: { width: 540 },
       classes: ["tormenta20-bases"],
-      content: `${avisoGeral}<ul class="t20b-beneficios-lista">${linhas}</ul><p class="notes">Desmarque um benefício para removê-lo apenas deste frequentador.</p>`,
+      content: `${avisoGeral}${escolheOficio ? seletorOficio(freq.oficio) : ""}<ul class="t20b-beneficios-lista">${linhas}</ul><p class="notes">Desmarque um benefício para removê-lo apenas deste frequentador.</p>`,
       ok: {
         label: "Aplicar",
         icon: "fa-solid fa-check",
-        callback: (_event, button) => new Set(
-          [...button.form.querySelectorAll("input[data-beneficio-index]:checked")]
-            .map(input => Number(input.dataset.beneficioIndex))
-        )
+        callback: (_event, button) => ({
+          habilitados: new Set(
+            [...button.form.querySelectorAll("input[data-beneficio-index]:checked")]
+              .map(input => Number(input.dataset.beneficioIndex))
+          ),
+          oficio: button.form.elements.oficio?.value
+        })
       }
     }).catch(() => null);
-    if (!habilitados) return;
+    if (!resposta) return;
+    const { habilitados } = resposta;
+    const oficio = escolheOficio ? (resposta.oficio || null) : freq.oficio ?? null;
 
     const idsAtuais = new Set(efeitos.map(e => e.flags?.[MODULO]?.beneficioId).filter(Boolean));
     const preservados = [...desativadosAtuais].filter(id => !idsAtuais.has(id));
@@ -608,7 +617,7 @@ export class NegocioSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       .filter((e, indice) => !habilitados.has(indice) && e.flags?.[MODULO]?.beneficioId)
       .map(e => e.flags[MODULO].beneficioId);
     const frequentadores = this.actor.system.frequentadores.map(r =>
-      r.uuid === uuid ? { ...r, beneficiosDesativados: [...preservados, ...novosDesativados] } : r
+      r.uuid === uuid ? { ...r, oficio, beneficiosDesativados: [...preservados, ...novosDesativados] } : r
     );
     await this.actor.update({ "system.frequentadores": frequentadores });
     await sincronizarEfeitos(this.actor, { silencioso: true });

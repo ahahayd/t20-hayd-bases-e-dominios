@@ -90,6 +90,8 @@ export function montarEfeitosPara(base, uuidMorador) {
   const catC = obterComodos(base);
   const catM = obterMobilias(base);
   const efeitos = [];
+  /* Ofício escolhido por este morador (Oficina de Trabalho e Bigorna) */
+  const oficio = s.residentes.find(r => r.uuid === uuidMorador)?.oficio ?? null;
 
   /* ------------------------- Tipo da base ------------------------- */
   const tipo = TIPOS[s.tipo];
@@ -143,6 +145,10 @@ export function montarEfeitosPara(base, uuidMorador) {
       if (!com.escolha) continue;
       changes = [{ key: `system.pericias.${com.escolha}.treinado`, mode: OVERRIDE, value: "true" }];
     }
+    if (def.efeito?.oficioPorMorador) {
+      if (!oficio) continue;
+      changes = [{ key: `system.pericias.${oficio}.bonus`, mode: ADD, value: String(def.efeito.bonus ?? 1) }];
+    }
     if (!changes.length) continue;
     efeitos.push(novoEfeito(base, def.nome,
       `${def.beneficio}.${def.efeito?.nota ? ` <em>${def.efeito.nota}</em>` : ""}`,
@@ -178,7 +184,9 @@ export function montarEfeitosPara(base, uuidMorador) {
     /* Ídolo Dourado: +1 no primeiro bônus de perícia do cômodo */
     if (def.especial === "idolo") {
       const alvo = com ? catC[com.key] : null;
-      const perChange = alvo?.efeito?.changes?.find(c => /system\.pericias\..+\.bonus/.test(c.key));
+      const perChange = alvo?.efeito?.oficioPorMorador
+        ? (oficio ? { key: `system.pericias.${oficio}.bonus` } : null)
+        : alvo?.efeito?.changes?.find(c => /system\.pericias\..+\.bonus/.test(c.key));
       if (!perChange) continue;
       efeitos.push(novoEfeito(base, `${def.nome} (${alvo.nome})`,
         `${def.beneficio}.`,
@@ -196,6 +204,11 @@ export function montarEfeitosPara(base, uuidMorador) {
       if (!mob.escolha) continue;
       changes = [{ key: `system.pericias.${mob.escolha}.treinado`, mode: OVERRIDE, value: "true" }];
     }
+    /* Ex.: Bigorna na Oficina — reforça o Ofício escolhido pelo morador */
+    if (bloco.oficioPorMorador) {
+      if (!oficio) continue;
+      changes = [{ key: `system.pericias.${oficio}.bonus`, mode: ADD, value: String(bloco.bonus ?? 1) }];
+    }
     if (!changes.length) continue;
     efeitos.push(novoEfeito(base, def.nome,
       `${def.beneficio}.${bloco.nota ? ` <em>${bloco.nota}</em>` : ""}`,
@@ -206,6 +219,12 @@ export function montarEfeitosPara(base, uuidMorador) {
 }
 
 /** Remove os efeitos desta base de um ator específico. */
+/** A base tem um cômodo funcionando cujo bônus vai no Ofício de cada morador? */
+export function temOficioPorMorador(base) {
+  const catC = obterComodos(base);
+  return base.system.comodos.some(c => !c.danificado && c.ativo !== false && catC[c.key]?.efeito?.oficioPorMorador);
+}
+
 async function limparEfeitosDe(base, ator) {
   const antigos = ator.effects.filter(e => e.getFlag(MODULO, "baseUuid") === base.uuid);
   if (antigos.length) await ator.deleteEmbeddedDocuments("ActiveEffect", antigos.map(e => e.id));

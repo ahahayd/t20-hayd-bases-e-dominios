@@ -471,10 +471,11 @@ section.t20b-aba.ativa { display: block; }
 /* Editor de texto rico */
 .tormenta20-bases.tema-hayd prose-mirror { background: rgba(0, 0, 0, 0.25); border: 1px solid var(--t20b-borda); }
 
-/* Cartões de chat no tema Hayd: o t20-hayd-ui deixa o fundo das mensagens
- * escuro, então o texto do cartão precisa ser claro. */
+/* Cartões de chat no tema Hayd. O t20-hayd-ui escolhe o fundo de cada
+ * mensagem — escuro para o Mestre e NPCs, pergaminho claro para jogadores —
+ * e a cor de texto que combina com ele: o cartão herda essa cor em vez de
+ * supor um dos dois fundos. */
 .t20b-chat.tema-hayd {
-  --t20b-texto: #e8e4dc;
   --t20b-texto-suave: #a89f93;
   border-color: rgba(255, 255, 255, 0.18);
   background: rgba(20, 17, 26, 0.35);
@@ -482,9 +483,19 @@ section.t20b-aba.ativa { display: block; }
 .t20b-chat.tema-hayd .t20b-chat-header { border-bottom-color: rgba(255, 255, 255, 0.18); }
 .t20b-chat.tema-hayd .t20b-chat-header h3,
 .t20b-chat.tema-hayd .t20b-chat-header span,
-.t20b-chat.tema-hayd .t20b-chat-body { color: var(--t20b-texto); }
+.t20b-chat.tema-hayd .t20b-chat-body { color: inherit; }
 .t20b-chat.tema-hayd .t20b-bom { color: #6fbf73; }
 .t20b-chat.tema-hayd .t20b-ruim { color: #e06c5a; }
+/* Mensagem de jogador (pergaminho): bordas escuras, sem o painel escuro e
+ * verde/vermelho fechados. */
+.t20a-chat-player .t20b-chat.tema-hayd {
+  --t20b-texto-suave: #5f574d;
+  border-color: rgba(0, 0, 0, 0.2);
+  background: rgba(20, 17, 26, 0.04);
+}
+.t20a-chat-player .t20b-chat.tema-hayd .t20b-chat-header { border-bottom-color: rgba(0, 0, 0, 0.15); }
+.t20a-chat-player .t20b-chat.tema-hayd .t20b-bom { color: #1d7a24; }
+.t20a-chat-player .t20b-chat.tema-hayd .t20b-ruim { color: #a8322a; }
 
 /* Pedido de teste enviado ao jogador (teste-remoto.mjs) */
 .t20bd-teste-remoto { display: flex; flex-direction: column; gap: 8px; }

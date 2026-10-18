@@ -678,11 +678,20 @@ section.t20d-aba.ativa { display: flex; }
   border-bottom: 1px solid #96050555;
   background: none;
 }
-/* O t20-hayd-ui deixa o fundo das mensagens escuro: texto claro no cartão. */
+/* O t20-hayd-ui escolhe o fundo de cada mensagem — escuro para o Mestre e
+   NPCs, pergaminho claro para jogadores — e a cor de texto que combina com
+   ele: o cartão herda essa cor em vez de supor um dos dois fundos. */
 .t20d-chat.tema-hayd .t20d-chat-header h3,
 .t20d-chat.tema-hayd .t20d-chat-header span,
 .t20d-chat.tema-hayd .t20d-chat-body,
-.t20d-chat.tema-hayd .t20d-chat-body h4 { color: var(--t20d-texto); }
+.t20d-chat.tema-hayd .t20d-chat-body h4 { color: inherit; }
+/* Mensagem de jogador (pergaminho): verde/vermelho/ouro fechados. */
+.t20a-chat-player .t20d-chat.tema-hayd {
+  --t20d-texto-fraco: #5f574d;
+  --t20d-bom: #2e7d32;
+  --t20d-ruim: #b3261e;
+  --t20d-ouro: #8a6510;
+}
 .t20d-chat.tema-hayd .t20d-chat-header img {
   border: 1px solid #96050588;
   border-radius: 0;

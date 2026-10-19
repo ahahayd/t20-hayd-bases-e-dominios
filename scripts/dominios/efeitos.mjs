@@ -6,6 +6,7 @@
  */
 import { MODULO, obterConstrucoes } from "./catalogo.mjs";
 
+const ADD = 2;
 const OVERRIDE = 5;
 
 /** Recupera o ator regente vinculado ao domínio (ou null). */

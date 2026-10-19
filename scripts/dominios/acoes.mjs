@@ -12,6 +12,7 @@ import {
 import { obterRegente, sincronizarEfeitos } from "./efeitos.mjs";
 import { htmlDesfechoObra } from "../correcao-obras.mjs";
 import { pedirTeste } from "../teste-remoto.mjs";
+import { totalDecimos } from "../bases/acoes.mjs";
 
 const { DialogV2 } = foundry.applications.api;
 
@@ -416,24 +417,52 @@ export async function acaoFestival(dominio, evento = null) {
   if (t.sucesso) await ajustarPopularidade(dominio, +1, "O festival alegra o povo.");
 }
 
+/* Moedas do sistema Tormenta20, da maior para a menor, com o valor em
+ * décimos de T$ (TC = T$ 0,1), na mesma escala de totalDecimos. A platina
+ * é "TL" (o sistema a abrevia "TP", que se confunde com a prata). */
+const MOEDAS = [
+  { chave: "tl", valor: 1000, abrev: "TL" },
+  { chave: "to", valor: 100, abrev: "TO" },
+  { chave: "tp", valor: 10, abrev: "T$" },
+  { chave: "tc", valor: 1, abrev: "TC" }
+];
+
+const fmtDecimos = (dec) => `T$ ${(dec / 10).toLocaleString("pt-BR", { maximumFractionDigits: 1 })}`;
+
+/**
+ * Desconta um valor (em décimos de T$) de uma carteira gastando sempre as
+ * maiores moedas primeiro (platina → ouro → prata → cobre). Como 1 LO
+ * (T$ 1.000) é múltiplo de todas as moedas, o valor fecha sem troco sempre
+ * que o saldo total basta. Retorna { carteira, gasto }, ou null se faltar.
+ */
+function gastarMaioresMoedas(d, decimos) {
+  const carteira = { tc: d?.tc ?? 0, tp: d?.tp ?? 0, to: d?.to ?? 0, tl: d?.tl ?? 0 };
+  const gasto = [];
+  let resta = decimos;
+  for (const { chave, valor, abrev } of MOEDAS) {
+    const usa = Math.min(carteira[chave], Math.floor(resta / valor));
+    if (!usa) continue;
+    carteira[chave] -= usa;
+    resta -= usa * valor;
+    gasto.push(`${usa.toLocaleString("pt-BR")} ${abrev}`);
+  }
+  return resta > 0 ? null : { carteira, gasto };
+}
+
 export async function acaoFinancas(dominio, evento = null) {
   const regente = await obterRegente(dominio);
   if (!regente) return ui.notifications.warn("Vincule um regente ao domínio.");
-  const din = regente.system.dinheiro ?? {};
+  const saldoRegente = () => totalDecimos(regente.system.dinheiro);
   const conteudo = `
     <p>Conversão à taxa de <strong>T$ 1.000 = 1 LO</strong>. Teste de Nobreza (CD 20).</p>
+    <p>Dinheiro de ${regente.name}: <strong>${fmtDecimos(saldoRegente())}</strong></p>
     <div class="form-group"><label>Direção</label>
       <select name="direcao">
         <option value="paraLO">Dinheiro do regente → Lingotes do domínio</option>
-        <option value="paraTS">Lingotes do domínio → Dinheiro do regente</option>
+        <option value="paraTS">Lingotes do domínio → Dinheiro do regente (em TO)</option>
       </select></div>
     <div class="form-group"><label>Quantidade (em LO)</label>
-      <input type="number" name="qtd" value="1" min="1" step="1"></div>
-    <div class="form-group"><label>Moeda do regente</label>
-      <select name="moeda">
-        <option value="prata">T$ (prata) — atual: ${din.prata ?? 0}</option>
-        <option value="ouro">TO (ouro, T$ 10) — atual: ${din.ouro ?? 0}</option>
-      </select></div>`;
+      <input type="number" name="qtd" value="1" min="1" step="1"></div>`;
   const dados = await DialogV2.prompt({
     window: { title: "Ação: Finanças" },
     content: conteudo,
@@ -445,12 +474,11 @@ export async function acaoFinancas(dominio, evento = null) {
   if (!dados) return;
 
   const qtdLO = Math.max(1, Math.floor(dados.qtd));
-  const fator = dados.moeda === "ouro" ? 100 : 1000; // 1 LO em moedas
-  const qtdMoedas = qtdLO * fator;
-  const rotuloMoeda = dados.moeda === "ouro" ? "TO" : "T$ (prata)";
+  const custoDec = qtdLO * 10000; // 1 LO = T$ 1.000, em décimos de T$
+  const qtdTO = qtdLO * 100;
 
-  if (dados.direcao === "paraLO" && (din[dados.moeda] ?? 0) < qtdMoedas)
-    return ui.notifications.error(`${regente.name} não possui ${qtdMoedas} ${rotuloMoeda}.`);
+  if (dados.direcao === "paraLO" && saldoRegente() < custoDec)
+    return ui.notifications.error(`${regente.name} não possui ${fmtDecimos(custoDec)} (tem ${fmtDecimos(saldoRegente())}).`);
   if (dados.direcao === "paraTS" && dominio.system.tesouro.lo < qtdLO)
     return ui.notifications.error(`O tesouro não possui ${qtdLO} LO.`);
 
@@ -461,15 +489,23 @@ export async function acaoFinancas(dominio, evento = null) {
   if (!t) return;
   let corpo = htmlResultadoTeste(t, "Nobreza");
 
-  if (t.sucesso) {
+  /* Saldos relidos após a rolagem: o teste remoto pode demorar, e o
+   * dinheiro ou o tesouro podem ter mudado nesse meio tempo. */
+  const pagamento = dados.direcao === "paraLO" ? gastarMaioresMoedas(regente.system.dinheiro, custoDec) : null;
+  if (t.sucesso && dados.direcao === "paraLO" && !pagamento) {
+    corpo += `<p class="t20d-ruim">${regente.name} já não possui ${fmtDecimos(custoDec)}; nada é convertido.</p>`;
+  } else if (t.sucesso && dados.direcao === "paraTS" && dominio.system.tesouro.lo < qtdLO) {
+    corpo += `<p class="t20d-ruim">O tesouro já não possui ${qtdLO} LO; nada é convertido.</p>`;
+  } else if (t.sucesso) {
     if (dados.direcao === "paraLO") {
-      await regente.update({ [`system.dinheiro.${dados.moeda}`]: (din[dados.moeda] ?? 0) - qtdMoedas });
-      await movimentarTesouro(dominio, `Finanças: conversão de ${qtdMoedas} ${rotuloMoeda} (${regente.name})`, qtdLO);
-      corpo += `<p><strong>${qtdMoedas} ${rotuloMoeda}</strong> de ${regente.name} tornam-se <strong>${qtdLO} LO</strong> no tesouro.</p>`;
+      const gasto = new Intl.ListFormat("pt-BR", { type: "conjunction" }).format(pagamento.gasto);
+      await regente.update({ "system.dinheiro": pagamento.carteira });
+      await movimentarTesouro(dominio, `Finanças: conversão de ${fmtDecimos(custoDec)} (${regente.name})`, qtdLO);
+      corpo += `<p><strong>${gasto}</strong> de ${regente.name} tornam-se <strong>${qtdLO} LO</strong> no tesouro.</p>`;
     } else {
-      await movimentarTesouro(dominio, `Finanças: conversão em ${qtdMoedas} ${rotuloMoeda} (${regente.name})`, -qtdLO);
-      await regente.update({ [`system.dinheiro.${dados.moeda}`]: (din[dados.moeda] ?? 0) + qtdMoedas });
-      corpo += `<p><strong>${qtdLO} LO</strong> do tesouro tornam-se <strong>${qtdMoedas} ${rotuloMoeda}</strong> para ${regente.name}.</p>`;
+      await movimentarTesouro(dominio, `Finanças: conversão em ${qtdTO.toLocaleString("pt-BR")} TO (${regente.name})`, -qtdLO);
+      await regente.update({ "system.dinheiro.to": (regente.system.dinheiro?.to ?? 0) + qtdTO });
+      corpo += `<p><strong>${qtdLO} LO</strong> do tesouro tornam-se <strong>${qtdTO.toLocaleString("pt-BR")} TO</strong> para ${regente.name}.</p>`;
     }
   } else {
     corpo += `<p>A negociação com os cambistas fracassa; nada é convertido.</p>`;

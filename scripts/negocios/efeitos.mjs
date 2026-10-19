@@ -6,6 +6,7 @@
  */
 import { MODULO, MODOS_EFEITO, obterAtivos, tipoConjurador, labelPericia } from "./catalogo.mjs";
 import { obterMorador } from "../bases/efeitos.mjs";
+import { efeitosParaOSistema, mudancasDoEfeito, ehEfeitoDeUso } from "../versao.mjs";
 
 const { ADD } = MODOS_EFEITO;
 const ICONE = `modules/${MODULO}/assets/negocio.svg`;
@@ -151,7 +152,7 @@ export async function sincronizarEfeitos(negocio, { silencioso = false } = {}) {
     const desativados = new Set(freq.beneficiosDesativados ?? []);
     const efeitos = montarEfeitosPara(negocio, ator, freq.oficio)
       .filter(efeito => !desativados.has(efeito.flags?.[MODULO]?.beneficioId));
-    if (efeitos.length) await ator.createEmbeddedDocuments("ActiveEffect", efeitos);
+    if (efeitos.length) await ator.createEmbeddedDocuments("ActiveEffect", efeitosParaOSistema(efeitos));
     return { removidos, criados: efeitos.length, conta: true };
   }));
 
@@ -188,8 +189,8 @@ export function caminhosDeOutrasEstruturas(ator) {
     const flags = efeito.flags?.[MODULO];
     if (!flags || flags.negocioUuid) continue;
     if (!flags.baseUuid && !flags.dominioUuid) continue;
-    if (efeito.flags?.tormenta20?.onuse) continue;
-    for (const change of efeito.changes ?? []) {
+    if (ehEfeitoDeUso(efeito)) continue;
+    for (const change of mudancasDoEfeito(efeito)) {
       if (!mapa.has(change.key)) mapa.set(change.key, efeito.name);
     }
   }

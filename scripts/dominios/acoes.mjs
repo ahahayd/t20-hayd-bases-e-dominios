@@ -13,6 +13,7 @@ import { obterRegente, sincronizarEfeitos } from "./efeitos.mjs";
 import { htmlDesfechoObra } from "../correcao-obras.mjs";
 import { pedirTeste } from "../teste-remoto.mjs";
 import { totalDecimos } from "../bases/acoes.mjs";
+import { modoPadrao, modoDaJanela, aplicarModo, prepararJanelaDePericia } from "../versao.mjs";
 
 const { DialogV2 } = foundry.applications.api;
 
@@ -49,7 +50,7 @@ export async function cartao(dominio, titulo, corpo, { rolls = [], subtitulo = "
     speaker: { alias: dominio.name },
     flags: { [MODULO]: { dominio: dominio.uuid, ...flagsModulo } }
   };
-  if (rollMode) ChatMessage.applyRollMode(dados, rollMode);
+  if (rollMode) aplicarModo(dados, rollMode);
   return ChatMessage.create(dados);
 }
 
@@ -221,7 +222,7 @@ export async function prepararTesteRegente(dominio, periciaKey, cd, {
   const per = regente.system.pericias?.[periciaKey];
   const partes = montarPartes(periciaKey);
 
-  let rollMode = game.settings.get("core", "rollMode");
+  let rollMode = modoPadrao();
   let rConfig = {};
   let itemData = null;
 
@@ -229,7 +230,7 @@ export async function prepararTesteRegente(dominio, periciaKey, cd, {
   const api = game.tormenta20;
   const usarSistema = !!(api?.applications?.AbilityUseDialog && api?.dice?.d20Roll);
   if (usarSistema) {
-    itemData = {
+    itemData = prepararJanelaDePericia({
       ...(per ?? {}),
       name: nomePericia,
       label: nomePericia,
@@ -239,7 +240,7 @@ export async function prepararTesteRegente(dominio, periciaKey, cd, {
       actor: regente,
       system: { ativacao: { custo: 0 } },
       isOwned: true
-    };
+    }, regente);
     // Respeita a preferência do sistema: por padrão abre a janela; Shift inverte
     const usoPadrao = game.settings.get("tormenta20", "UsageConfig") === "default";
     const shift = evento?.shiftKey ?? false;
@@ -248,7 +249,7 @@ export async function prepararTesteRegente(dominio, periciaKey, cd, {
       const configuracao = await api.applications.AbilityUseDialog.create(itemData);
       if (!configuracao) return null; // jogador cancelou a janela
       rConfig = configuracao;
-      rollMode = configuracao.rollMode ?? rollMode;
+      rollMode = modoDaJanela(configuracao, rollMode);
     }
   }
 

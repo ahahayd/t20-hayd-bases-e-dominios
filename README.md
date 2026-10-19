@@ -6,8 +6,8 @@ Une, em um único módulo, o **T20 Hayd Bases** e o **T20 Hayd Domínios**: tipo
 
 ## Requisitos
 
-- FoundryVTT **v13**
-- Sistema **Tormenta20**
+- FoundryVTT **v13** ou **v14**
+- Sistema **Tormenta20** (1.5 no Foundry v13, 1.6 no Foundry v14)
 - *(Opcional)* **t20-hayd-ui** — as fichas adotam o tema visual combinado quando ativo
 
 ## Instalação

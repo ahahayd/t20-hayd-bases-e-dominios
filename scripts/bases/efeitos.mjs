@@ -6,6 +6,7 @@
  * Bônus numéricos de perícia usam SEMPRE system.pericias.X.bonus.
  */
 import { MODULO, TIPOS, obterComodos, obterMobilias, MODOS_EFEITO } from "./catalogo.mjs";
+import { efeitosParaOSistema } from "../versao.mjs";
 
 const { ADD, OVERRIDE } = MODOS_EFEITO;
 const ICONE = `modules/${MODULO}/assets/base.svg`;
@@ -247,7 +248,7 @@ export async function sincronizarEfeitos(base, { silencioso = false } = {}) {
     const desativados = new Set(res.beneficiosDesativados ?? []);
     const efeitos = montarEfeitosPara(base, res.uuid)
       .filter(efeito => !desativados.has(efeito.flags?.[MODULO]?.beneficioId));
-    if (efeitos.length) await ator.createEmbeddedDocuments("ActiveEffect", efeitos);
+    if (efeitos.length) await ator.createEmbeddedDocuments("ActiveEffect", efeitosParaOSistema(efeitos));
     return { removidos, criados: efeitos.length, conta: true };
   }));
 

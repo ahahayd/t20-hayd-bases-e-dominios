@@ -16,6 +16,8 @@
  * via game.actors.invalidDocumentIds/getInvalid. O botão manual em
  * Configurar → Módulos → T20 Hayd Bases e Domínios cobre esse caso.
  */
+import { mudancasDoEfeito } from "./versao.mjs";
+
 const { DialogV2 } = foundry.applications.api;
 
 const MODULO = "t20-hayd-bases-e-dominios";
@@ -193,7 +195,7 @@ async function removerEfeitosOficInvalidos() {
   let total = 0;
   for (const ator of game.actors) {
     const ids = ator.effects
-      .filter(e => e.flags?.[MODULO] && e.changes.some(c => c.key?.startsWith("system.pericias.ofic.")))
+      .filter(e => e.flags?.[MODULO] && mudancasDoEfeito(e).some(c => c.key?.startsWith("system.pericias.ofic.")))
       .map(e => e.id);
     if (!ids.length) continue;
     await ator.deleteEmbeddedDocuments("ActiveEffect", ids);

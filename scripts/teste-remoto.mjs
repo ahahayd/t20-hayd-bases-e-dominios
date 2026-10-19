@@ -12,6 +12,7 @@
  */
 import { MODULO } from "./bases/catalogo.mjs";
 import { labelPericia } from "./bases/catalogo.mjs";
+import { modoPadrao, modoDaJanela, prepararJanelaDePericia } from "./versao.mjs";
 
 const { DialogV2 } = foundry.applications.api;
 const CANAL = `module.${MODULO}`;
@@ -108,20 +109,20 @@ async function rolarPorPartes(ator, pericia, partes, rotulo) {
   if (!(api?.applications?.AbilityUseDialog && api?.dice?.d20Roll)) {
     const roll = new Roll(partes.join(" + ").replace(/\+ -/g, "- "));
     await roll.evaluate();
-    return { roll, rollMode: game.settings.get("core", "rollMode") };
+    return { roll, rollMode: modoPadrao() };
   }
   const per = ator.system.pericias?.[pericia];
-  const itemData = {
+  const itemData = prepararJanelaDePericia({
     ...(per ?? {}), name: nome, label: nome, type: "pericia", parts: partes, id: pericia,
     actor: ator, system: { ativacao: { custo: 0 } }, isOwned: true
-  };
-  let rollMode = game.settings.get("core", "rollMode");
+  }, ator);
+  let rollMode = modoPadrao();
   let rConfig = {};
   if (game.settings.get("tormenta20", "UsageConfig") === "default") {
     const configuracao = await api.applications.AbilityUseDialog.create(itemData);
     if (!configuracao) return null;
     rConfig = configuracao;
-    rollMode = configuracao.rollMode ?? rollMode;
+    rollMode = modoDaJanela(configuracao, rollMode);
   }
   const custoPM = itemData.system?.ativacao?.custo ?? 0;
   if (custoPM > 0 && game.settings.get("tormenta20", "automaticManaSpend")) await ator.spendMana(custoPM, 0, false);
@@ -148,7 +149,7 @@ async function atenderPedido(msg) {
       resultado = await rolarPorPartes(ator, pericia, partes, msg.rotulo);
     } else if (typeof ator.rollPericia === "function" && ator.system.pericias?.[pericia]) {
       const roll = await ator.rollPericia(pericia, { message: false });
-      resultado = roll ? { roll, rollMode: game.settings.get("core", "rollMode") } : null;
+      resultado = roll ? { roll, rollMode: modoPadrao() } : null;
     }
   } catch (err) {
     console.warn(`${MODULO} | Falha ao rolar o teste pedido pelo mestre.`, err);

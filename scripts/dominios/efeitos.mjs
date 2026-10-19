@@ -5,6 +5,7 @@
  * system.attributes.pv/pm.bonus.total, system.modificadores.*, etc).
  */
 import { MODULO, obterConstrucoes } from "./catalogo.mjs";
+import { efeitosParaOSistema } from "../versao.mjs";
 
 const ADD = 2;
 const OVERRIDE = 5;
@@ -97,7 +98,7 @@ export async function sincronizarEfeitos(dominio, { silencioso = false } = {}) {
     await regente.deleteEmbeddedDocuments("ActiveEffect", antigos.map(e => e.id));
   }
   if (desejados.length) {
-    await regente.createEmbeddedDocuments("ActiveEffect", desejados);
+    await regente.createEmbeddedDocuments("ActiveEffect", efeitosParaOSistema(desejados));
   }
 
   console.debug(`${MODULO} | Sincronização de efeitos: ${antigos.length} removidos, ${desejados.length} criados em ${regente.name}.`);

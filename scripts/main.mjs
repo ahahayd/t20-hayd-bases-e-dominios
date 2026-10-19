@@ -18,6 +18,7 @@ import "./dominios/main.mjs";
 import "./negocios/main.mjs";
 import "./correcao-obras.mjs";
 import "./migracao.mjs";
+import "./ressincronizar-v14.mjs";
 
 import { registrarTesteRemoto } from "./teste-remoto.mjs";
 Hooks.once("ready", registrarTesteRemoto);

@@ -2,7 +2,7 @@
  * t20-hayd-dominios | data.mjs
  * DataModel do subtipo de ator "t20-hayd-dominios.dominio".
  */
-import { TERRENOS, CORTES, POPULARIDADES, UNIDADES, MODULO, obterConstrucoes } from "./catalogo.mjs";
+import { TERRENOS, CORTES, POPULARIDADES, UNIDADES, MODULO, CATEGORIAS_CONSTRUCAO, obterConstrucoes, unidadeDoDominio } from "./catalogo.mjs";
 
 const f = foundry.data.fields;
 
@@ -105,6 +105,8 @@ export class DominioData extends foundry.abstract.TypeDataModel {
     this.temConstrucao = (key) => chaves.includes(key);
 
     const catalogo = obterConstrucoes({ system: this });
+    /* Construções gratuitas de seção oculta (Spoilers) não ocupam vaga */
+    this.construcoesOcupadas = this.construcoes.filter(c => !CATEGORIAS_CONSTRUCAO[catalogo[c.key]?.categoria]?.oculta).length;
 
     /* Fortificação: forte 2 (→5 c/ castelo) + paliçada 2 (→5 c/ muralha) */
     let fort = 0;
@@ -127,7 +129,7 @@ export class DominioData extends foundry.abstract.TypeDataModel {
     }, 0);
     this.manutencaoUnidades = this.unidades.reduce((t, u) => {
       if (u.temporaria) return t;
-      return t + (UNIDADES[u.key]?.manutencao ?? 0) * (u.qtd ?? 1);
+      return t + (unidadeDoDominio(this, u.key)?.manutencao ?? 0) * (u.qtd ?? 1);
     }, 0);
     this.manutencaoCorte = corte.manutencao;
     this.manutencaoTotal = this.manutencaoCorte + this.manutencaoUnidades;

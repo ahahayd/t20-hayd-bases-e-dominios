@@ -24,7 +24,7 @@ export async function obterRegente(dominio) {
 }
 
 /** Monta a definição de Efeito Ativo de uma construção instalada. */
-function montarEfeitoConstrucao(dominio, entrada) {
+function montarEfeitoConstrucao(dominio, entrada, regente) {
   const def = obterConstrucoes(dominio)[entrada.key];
   if (!def?.efeito) return null;
 
@@ -38,6 +38,12 @@ function montarEfeitoConstrucao(dominio, entrada) {
   if (def.efeito.escolha === "oficio") {
     if (!entrada.escolha) return null;
     changes = [{ key: `system.pericias.${entrada.escolha}.bonus`, mode: ADD, value: String(def.efeito.bonus ?? 1) }];
+  }
+  // Estábulo dos Cavalariços: treinado em Cavalgar, ou +2 se já era (pela ficha, sem efeitos)
+  if (def.efeito.escolha === "cavalgar") {
+    changes = regente?._source?.system?.pericias?.cava?.treinado
+      ? [{ key: "system.pericias.cava.bonus", mode: ADD, value: "2" }]
+      : [{ key: "system.pericias.cava.treinado", mode: OVERRIDE, value: "true" }];
   }
   if (!changes.length) return null;
 
@@ -87,7 +93,7 @@ export async function sincronizarEfeitos(dominio, { silencioso = false } = {}) {
   const desejados = [];
   for (const entrada of dominio.system.construcoes) {
     if (entrada.efeitoAtivo === false) continue;
-    const ef = montarEfeitoConstrucao(dominio, entrada);
+    const ef = montarEfeitoConstrucao(dominio, entrada, regente);
     if (ef) desejados.push(ef);
   }
   const mistico = (dominio.system.tipo === "mistico") ? montarEfeitoMistico(dominio) : null;

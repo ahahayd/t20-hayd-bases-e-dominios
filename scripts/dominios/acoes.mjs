@@ -7,11 +7,11 @@ import {
   MODULO, CORTES, ORDEM_CORTES, POPULARIDADES, ORDEM_POPULARIDADE,
   IMPOSTOS, UNIDADES, EVENTOS, SUBEVENTOS,
   RESULTADOS_BATALHA, CATEGORIAS_CONSTRUCAO, CONSELHEIROS, labelPericia, temaHayd, corDominio,
-  obterConstrucoes
+  obterConstrucoes, unidadeDoDominio, formulaImpostos
 } from "./catalogo.mjs";
 import { obterRegente, sincronizarEfeitos } from "./efeitos.mjs";
 import { htmlDesfechoObra } from "../correcao-obras.mjs";
-import { pedirTeste } from "../teste-remoto.mjs";
+import { pedirTeste, escolherPericia } from "../teste-remoto.mjs";
 import { totalDecimos } from "../bases/acoes.mjs";
 import { modoPadrao, modoDaJanela, aplicarModo, prepararJanelaDePericia } from "../versao.mjs";
 
@@ -55,9 +55,10 @@ export async function cartao(dominio, titulo, corpo, { rolls = [], subtitulo = "
 }
 
 /** Registra uma movimentação no tesouro (delta em LO) e atualiza o saldo. */
-export async function movimentarTesouro(dominio, desc, delta) {
+export async function movimentarTesouro(dominio, desc, delta, reg = null) {
   const atual = dominio.system.tesouro.lo;
   const novo = Math.max(0, Math.round((atual + delta) * 100) / 100);
+  reg?.push({ t: "lo", delta: Math.round((novo - atual) * 100) / 100, desc });
   const historico = [...dominio.system.tesouro.historico];
   historico.push({
     turno: dominio.system.turno.numero,
@@ -74,8 +75,9 @@ export async function movimentarTesouro(dominio, desc, delta) {
  * Ajusta a popularidade em N categorias (positivo = melhora).
  * Controla o início e o fim de revoltas. Ignorado em domínios místicos.
  */
-export async function ajustarPopularidade(dominio, passos, motivo = "") {
+export async function ajustarPopularidade(dominio, passos, motivo = "", reg = null) {
   if (dominio.system.tipo === "mistico" || !passos) return;
+  reg?.push({ t: "pop", popularidade: dominio.system.popularidade, emRevolta: dominio.system.emRevolta });
   let idx = ORDEM_POPULARIDADE.indexOf(dominio.system.popularidade);
   if (idx < 0) idx = 2;
   let novoIdx = idx - passos; // índice menor = mais popular
@@ -103,20 +105,22 @@ export async function ajustarPopularidade(dominio, passos, motivo = "") {
     `<p>${motivo ? motivo + " " : ""}A popularidade ${passos > 0 ? "aumenta" : "diminui"} para <strong>${nome}</strong>.</p>${extra}`);
 }
 
-export async function ajustarCorte(dominio, passos, motivo = "") {
+export async function ajustarCorte(dominio, passos, motivo = "", reg = null) {
   let idx = ORDEM_CORTES.indexOf(dominio.system.corte.categoria);
   const novoIdx = Math.clamp(idx + passos, 0, ORDEM_CORTES.length - 1);
   if (novoIdx === idx) return;
+  reg?.push({ t: "corte", categoria: dominio.system.corte.categoria });
   await dominio.update({ "system.corte.categoria": ORDEM_CORTES[novoIdx] });
   await cartao(dominio, "Corte",
     `<p>${motivo ? motivo + " " : ""}A corte ${passos > 0 ? "sobe" : "desce"} para <strong>${CORTES[ORDEM_CORTES[novoIdx]].nome}</strong>.</p>`);
 }
 
 /** Remove uma construção aleatória (evento, batalha, revolta). */
-export async function perderConstrucaoAleatoria(dominio, motivo = "") {
+export async function perderConstrucaoAleatoria(dominio, motivo = "", reg = null) {
   const lista = dominio.system.construcoes;
   if (!lista.length) return null;
   const alvo = lista[Math.floor(Math.random() * lista.length)];
+  reg?.push({ t: "construcao", entrada: foundry.utils.deepClone(alvo) });
   await dominio.update({ "system.construcoes": lista.filter(c => c.id !== alvo.id) });
   await sincronizarEfeitos(dominio, { silencioso: true });
   const nome = obterConstrucoes(dominio)[alvo.key]?.nome ?? alvo.key;
@@ -217,6 +221,16 @@ export async function prepararTesteRegente(dominio, periciaKey, cd, {
     const t = resultadoTeste(remoto.roll, regente, cd, remoto.rollMode, remoto.pericia, rotulo);
     return { regente, rollMode: remoto.rollMode, rolar: async () => t };
   }
+
+  /* Teste rolado aqui: a mesma escolha de perícia do teste remoto, porque
+   * várias habilidades do Tormenta20 trocam a perícia de um teste. */
+  const escolhida = await escolherPericia(regente, {
+    textoAcao: `realizar a ação de domínio “${rotulo || labelPericia(periciaKey)}”`, local: dominio.name,
+    pericia: periciaKey, cd, rotulo,
+    nota: "A perícia da ação já vem selecionada. Troque só se uma habilidade permitir outra."
+  });
+  if (!escolhida) return null;
+  periciaKey = escolhida;
 
   const nomePericia = labelPericia(periciaKey);
   const per = regente.system.pericias?.[periciaKey];
@@ -358,26 +372,19 @@ export async function acaoAumentarCorte(dominio, evento = null) {
 
   const t = await prep.rolar();
   if (!t) return;
-  let corpo = htmlResultadoTeste(t, "Nobreza");
-  if (t.sucesso) {
-    if (modo === "subir") await ajustarCorte(dominio, +1);
-    else if (modo === "descer") await ajustarCorte(dominio, -1);
-    else corpo += `<p>Você pode trocar um conselheiro na aba Domínio.</p>`;
-  } else {
-    corpo += `<p>A corte permanece como está${custo ? " e o ouro foi gasto" : ""}.</p>`;
-  }
-  await cartao(dominio, "Ação: Aumentar Corte", corpo, { rolls: [t.roll], rollMode: t.rollMode });
+  await cartaoDesfecho(dominio, "Ação: Aumentar Corte", "aumentarCorte", { modo, custo }, { t });
 }
 
 export async function acaoConvocarCamponeses(dominio) {
   if (!(await gastarAcao(dominio))) return;
   if (!(await pagarLO(dominio, 1, "Ação: Convocar Camponeses"))) return;
-  const roll = await rolar("1d6");
+  const guarda = dominio.system.temConstrucao("guarda-de-karst");
+  const roll = await rolar(guarda ? "1d6+1" : "1d6");
   const unidades = [...dominio.system.unidades];
   unidades.push({ id: foundry.utils.randomID(), key: "camponeses", qtd: roll.total, temporaria: true });
   await dominio.update({ "system.unidades": unidades });
   await cartao(dominio, "Ação: Convocar Camponeses",
-    `<p>O povo pega em armas: <strong>${roll.total} unidade(s) de camponeses</strong> até o fim do turno.</p>`,
+    `<p>O povo pega em armas: <strong>${roll.total} unidade(s) de camponeses</strong> até o fim do turno.</p>${guarda ? `<p>A Guarda de Karst: +1 unidade, com Defesa 16 e dano 1d8+1.</p>` : ""}`,
     { rolls: [roll] });
   await ajustarPopularidade(dominio, -1, "Convocar o povo para a guerra não agrada.");
 }
@@ -389,17 +396,14 @@ export async function acaoExtorquir(dominio, evento = null) {
   if (!(await gastarAcao(dominio))) return;
   const t = await prep.rolar();
   if (!t) return;
-  let corpo = htmlResultadoTeste(t, "Intimidação");
-  const rolls = [t.roll];
+  const dados = { nivel: dominio.system.nivel, ganho: null };
+  const rolls = [];
   if (t.sucesso) {
-    const ganho = await rolar(`1d6 + ${dominio.system.nivel}`);
+    const ganho = await rolar(`1d6 + ${dados.nivel}`);
     rolls.push(ganho);
-    await movimentarTesouro(dominio, "Ação: Extorquir", ganho.total);
-    corpo += `<p>Impostos abusivos rendem <strong>+${ganho.total} LO</strong>.</p>`;
-  } else {
-    corpo += `<p>O povo resiste às cobranças.</p>`;
+    dados.ganho = ganho.total;
   }
-  await cartao(dominio, "Ação: Extorquir", corpo, { rolls, rollMode: t.rollMode });
+  await cartaoDesfecho(dominio, "Ação: Extorquir", "extorquir", dados, { t, rolls });
   await ajustarPopularidade(dominio, -1, "Cobranças abusivas revoltam o povo.");
 }
 
@@ -411,11 +415,7 @@ export async function acaoFestival(dominio, evento = null) {
   if (!(await pagarLO(dominio, 1, "Ação: Festival"))) return;
   const t = await prep.rolar();
   if (!t) return;
-  let corpo = htmlResultadoTeste(t, "Atuação");
-  if (t.sucesso) corpo += `<p>A festa é um sucesso!</p>`;
-  else corpo += `<p>A festa fracassa, e o ouro foi gasto mesmo assim.</p>`;
-  await cartao(dominio, "Ação: Festival", corpo, { rolls: [t.roll], rollMode: t.rollMode });
-  if (t.sucesso) await ajustarPopularidade(dominio, +1, "O festival alegra o povo.");
+  await cartaoDesfecho(dominio, "Ação: Festival", "festival", {}, { t });
 }
 
 /* Moedas do sistema Tormenta20, da maior para a menor, com o valor em
@@ -454,8 +454,9 @@ export async function acaoFinancas(dominio, evento = null) {
   const regente = await obterRegente(dominio);
   if (!regente) return ui.notifications.warn("Vincule um regente ao domínio.");
   const saldoRegente = () => totalDecimos(regente.system.dinheiro);
+  const cd = dominio.system.temConstrucao("torre-de-loras") ? 15 : 20;
   const conteudo = `
-    <p>Conversão à taxa de <strong>T$ 1.000 = 1 LO</strong>. Teste de Nobreza (CD 20).</p>
+    <p>Conversão à taxa de <strong>T$ 1.000 = 1 LO</strong>. Teste de Nobreza (CD ${cd}${cd === 15 ? ", Torre de Loras" : ""}).</p>
     <p>Dinheiro de ${regente.name}: <strong>${fmtDecimos(saldoRegente())}</strong></p>
     <div class="form-group"><label>Direção</label>
       <select name="direcao">
@@ -483,35 +484,13 @@ export async function acaoFinancas(dominio, evento = null) {
   if (dados.direcao === "paraTS" && dominio.system.tesouro.lo < qtdLO)
     return ui.notifications.error(`O tesouro não possui ${qtdLO} LO.`);
 
-  const prep = await prepararTesteRegente(dominio, "nobr", 20, { rotulo: "Finanças", evento });
+  const prep = await prepararTesteRegente(dominio, "nobr", cd, { rotulo: "Finanças", evento });
   if (!prep) return;
   if (!(await gastarAcao(dominio))) return;
   const t = await prep.rolar();
   if (!t) return;
-  let corpo = htmlResultadoTeste(t, "Nobreza");
-
-  /* Saldos relidos após a rolagem: o teste remoto pode demorar, e o
-   * dinheiro ou o tesouro podem ter mudado nesse meio tempo. */
-  const pagamento = dados.direcao === "paraLO" ? gastarMaioresMoedas(regente.system.dinheiro, custoDec) : null;
-  if (t.sucesso && dados.direcao === "paraLO" && !pagamento) {
-    corpo += `<p class="t20d-ruim">${regente.name} já não possui ${fmtDecimos(custoDec)}; nada é convertido.</p>`;
-  } else if (t.sucesso && dados.direcao === "paraTS" && dominio.system.tesouro.lo < qtdLO) {
-    corpo += `<p class="t20d-ruim">O tesouro já não possui ${qtdLO} LO; nada é convertido.</p>`;
-  } else if (t.sucesso) {
-    if (dados.direcao === "paraLO") {
-      const gasto = new Intl.ListFormat("pt-BR", { type: "conjunction" }).format(pagamento.gasto);
-      await regente.update({ "system.dinheiro": pagamento.carteira });
-      await movimentarTesouro(dominio, `Finanças: conversão de ${fmtDecimos(custoDec)} (${regente.name})`, qtdLO);
-      corpo += `<p><strong>${gasto}</strong> de ${regente.name} tornam-se <strong>${qtdLO} LO</strong> no tesouro.</p>`;
-    } else {
-      await movimentarTesouro(dominio, `Finanças: conversão em ${qtdTO.toLocaleString("pt-BR")} TO (${regente.name})`, -qtdLO);
-      await regente.update({ "system.dinheiro.to": (regente.system.dinheiro?.to ?? 0) + qtdTO });
-      corpo += `<p><strong>${qtdLO} LO</strong> do tesouro tornam-se <strong>${qtdTO.toLocaleString("pt-BR")} TO</strong> para ${regente.name}.</p>`;
-    }
-  } else {
-    corpo += `<p>A negociação com os cambistas fracassa; nada é convertido.</p>`;
-  }
-  await cartao(dominio, "Ação: Finanças", corpo, { rolls: [t.roll], rollMode: t.rollMode });
+  await cartaoDesfecho(dominio, "Ação: Finanças", "financas",
+    { direcao: dados.direcao, qtdLO, qtdTO, custoDec, regenteUuid: regente.uuid }, { t });
 }
 
 export async function acaoGovernar(dominio, evento = null) {
@@ -545,15 +524,7 @@ export async function acaoGovernar(dominio, evento = null) {
 
   const t = await prep.rolar();
   if (!t) return;
-  let corpo = htmlResultadoTeste(t, "Nobreza");
-  if (t.sucesso) {
-    await dominio.update({ "system.nivel": proximo }, { t20dSkipSync: true });
-    corpo += `<p class="t20d-bom">O domínio prospera e alcança o <strong>nível ${proximo}</strong>!</p>`;
-    await sincronizarEfeitos(dominio, { silencioso: true });
-  } else {
-    corpo += `<p>As demandas dos súditos superam seus esforços — o domínio permanece no nível ${s.nivel}.</p>`;
-  }
-  await cartao(dominio, "Ação: Governar", corpo, { rolls: [t.roll], rollMode: t.rollMode });
+  await cartaoDesfecho(dominio, "Ação: Governar", "governar", { proximo, anterior: s.nivel }, { t });
 }
 
 /** Verifica os pré-requisitos de uma construção. Retorna string de erro ou null. */
@@ -562,7 +533,9 @@ export function validarConstrucao(dominio, key) {
   const def = catalogo[key];
   const s = dominio.system;
   if (!def) return "Construção desconhecida.";
-  if (s.construcoes.length >= s.maxConstrucoes)
+  if (CATEGORIAS_CONSTRUCAO[def.categoria]?.oculta)
+    return s.temConstrucao(key) ? "Esta construção já existe no domínio." : null;
+  if (s.construcoesOcupadas >= s.maxConstrucoes)
     return `Limite de construções atingido (${s.maxConstrucoes} = 3 × nível).`;
   if (!def.repetivel && s.temConstrucao(key)) return "Esta construção já existe no domínio.";
   if (s.tipo === "mistico" && !["religiao", "misticismo"].includes(def.categoria))
@@ -584,6 +557,7 @@ export async function acaoConstruir(dominio, key, evento = null) {
   if (erro) return ui.notifications.error(erro);
 
   const cat = CATEGORIAS_CONSTRUCAO[def.categoria];
+  if (cat?.oculta) return concederConstrucao(dominio, key, def);
   const cd = 20 + dominio.system.nivel;
   const ok = await DialogV2.confirm({
     window: { title: "Ação: Construir" },
@@ -622,6 +596,25 @@ export async function acaoConstruir(dominio, key, evento = null) {
   await cartao(dominio, "Ação: Construir", corpo, {
     rolls: [t.roll], rollMode: t.rollMode, flagsModulo: { obra }
   });
+}
+
+/** Construções de recompensa (seção oculta): entram sem teste, ação nem custo. */
+async function concederConstrucao(dominio, key, def) {
+  const ok = await DialogV2.confirm({
+    window: { title: "Conceder Construção" },
+    content: `<p>Adicionar <strong>${def.nome}</strong>${def.npc ? ` (${def.npc})` : ""}?</p>
+      <p>${def.beneficio}.</p><p>Gratuita: sem teste, sem ação de domínio e sem ocupar vaga.</p>`
+  });
+  if (!ok) return;
+  const entrada = {
+    id: foundry.utils.randomID(), key,
+    efeitoAtivo: !!def.efeito, escolha: null,
+    turno: dominio.system.turno.numero
+  };
+  await dominio.update({ "system.construcoes": [...dominio.system.construcoes, entrada] });
+  if (game.settings.get(MODULO, "dominiosSincronizarAuto")) await sincronizarEfeitos(dominio, { silencioso: true });
+  await cartao(dominio, "Construção Concedida",
+    `<p><strong>${def.nome}</strong>${def.npc ? ` — legado de ${def.npc}` : ""}.</p><p>${def.beneficio}.</p>`);
 }
 
 export async function acaoRecrutar(dominio, escolhas) {
@@ -876,20 +869,7 @@ export async function resolverEvento(dominio, id, periciaKey, evento = null) {
 
   const t = await prep.rolar();
   if (!t) return;
-  let corpo = htmlResultadoTeste(t, labelPericia(periciaKey));
-
-  if (t.sucesso) {
-    await dominio.update({ "system.turno.eventosAtivos": s.turno.eventosAtivos.filter(e => e.id !== id) });
-    corpo += `<p class="t20d-bom">A situação <strong>${pend.nome}</strong> é resolvida!</p>`;
-    await cartao(dominio, `Evento: ${pend.nome}`, corpo, { rolls: [t.roll], rollMode: t.rollMode });
-    if (pend.key === "corrupcao") {
-      await ajustarCorte(dominio, -1, "As demissões (ou execuções) necessárias reduzem a corte.");
-    }
-  } else {
-    corpo += `<p class="t20d-ruim">O problema persiste.</p>`;
-    await cartao(dominio, `Evento: ${pend.nome}`, corpo, { rolls: [t.roll], rollMode: t.rollMode });
-    if (!pend.persistente) await falharEvento(dominio, pend, { remover: true });
-  }
+  await cartaoDesfecho(dominio, `Evento: ${pend.nome}`, "evento", { pend: foundry.utils.deepClone(pend) }, { t });
 }
 
 /** Marca uma pendência como resolvida sem teste (cena jogada, decisão do mestre). */
@@ -901,23 +881,23 @@ export async function resolverEventoManual(dominio, id) {
   await cartao(dominio, `Evento: ${pend.nome}`, `<p>A situação foi resolvida (a critério do mestre).</p>`);
 }
 
-async function falharEvento(dominio, pend, { remover = false } = {}) {
+async function falharEvento(dominio, pend, { remover = false } = {}, reg = null) {
   const s = dominio.system;
   switch (pend.key) {
     case "monstro":
-      await ajustarPopularidade(dominio, -1, "O monstro continua à solta.");
-      await perderConstrucaoAleatoria(dominio, "O monstro destrói:");
+      await ajustarPopularidade(dominio, -1, "O monstro continua à solta.", reg);
+      await perderConstrucaoAleatoria(dominio, "O monstro destrói:", reg);
       break;
     case "intriga":
-      await ajustarCorte(dominio, -1, "A intriga corrói a corte.");
-      await ajustarPopularidade(dominio, -1, "Os boatos se espalham.");
+      await ajustarCorte(dominio, -1, "A intriga corrói a corte.", reg);
+      await ajustarPopularidade(dominio, -1, "Os boatos se espalham.", reg);
       break;
     case "questao-de-justica":
-      await ajustarPopularidade(dominio, -2, "A justiça falha aos olhos do povo.");
+      await ajustarPopularidade(dominio, -2, "A justiça falha aos olhos do povo.", reg);
       break;
     case "questao-comercial": {
       const r = await rolar("2d6");
-      await movimentarTesouro(dominio, "Questão comercial não resolvida", -r.total);
+      await movimentarTesouro(dominio, "Questão comercial não resolvida", -r.total, reg);
       await cartao(dominio, "Questão Comercial", `<p class="t20d-ruim">Os ganhos diminuem em ${r.total} LO.</p>`, { rolls: [r] });
       break;
     }
@@ -927,7 +907,9 @@ async function falharEvento(dominio, pend, { remover = false } = {}) {
       break;
   }
   if (remover) {
-    await dominio.update({ "system.turno.eventosAtivos": dominio.system.turno.eventosAtivos.filter(e => e.id !== pend.id) });
+    const ativos = dominio.system.turno.eventosAtivos;
+    if (ativos.some(e => e.id === pend.id)) reg?.push({ t: "evento", pend: foundry.utils.deepClone(pend) });
+    await dominio.update({ "system.turno.eventosAtivos": ativos.filter(e => e.id !== pend.id) });
   }
 }
 
@@ -936,6 +918,7 @@ async function falharEvento(dominio, pend, { remover = false } = {}) {
 export async function cobrarImpostos(dominio, faixa) {
   const s = dominio.system;
   if (s.turno.impostosCobrados) return ui.notifications.warn("Os impostos deste turno já foram cobrados.");
+  await dominio.update({ "system.turno.impostosCobrados": true });
 
   const rolls = [];
   const linhas = [];
@@ -949,12 +932,12 @@ export async function cobrarImpostos(dominio, faixa) {
     linhas.push(`<li>Domínio místico: <strong>+${s.nivel} LO</strong> (1 LO por nível).</li>`);
   } else {
     const tab = IMPOSTOS[Math.clamp(s.nivel, 1, 7)];
-    const formula = tab[faixa];
-    const r = await rolar(String(formula));
+    const formula = formulaImpostos(s, tab[faixa]);
+    const r = await rolar(formula);
     rolls.push(r);
     ganho += r.total;
     const rotulo = { baixos: "baixos", medios: "médios", altos: "altos" }[faixa];
-    linhas.push(`<li>Impostos ${rotulo} (${formula}): <strong>+${r.total} LO</strong></li>`);
+    linhas.push(`<li>Impostos ${rotulo} (${tab[faixa]}): <strong>+${r.total} LO</strong>${htmlNovaRolagem(s, r, formula !== String(tab[faixa]))}</li>`);
     if (faixa === "altos" && s.temConstrucao("posto-de-pedagio")) {
       ganho += s.nivel;
       linhas.push(`<li>Posto de Pedágio: <strong>+${s.nivel} LO</strong></li>`);
@@ -1004,28 +987,6 @@ export async function cobrarImpostos(dominio, faixa) {
     }
   }
 
-  /* Caravana em viagem */
-  if (s.caravana.ativa) {
-    const k = s.caravana.dados;
-    const t = await testeRegente(dominio, "nobr", 20 + k, { rotulo: "Retorno da caravana" });
-    if (t) {
-      rolls.push(t.roll);
-      if (t.sucesso) {
-        const dado = t.margem >= 10 ? "2d4+1" : t.margem >= 5 ? "1d6+1" : "1d4+1";
-        const r = await rolar(Array(k).fill(`(${dado})`).join(" + "));
-        rolls.push(r);
-        ganho += r.total;
-        linhas.push(`<li class="t20d-bom">Caravana retorna! Nobreza ${t.total} vs CD ${20 + k} (margem ${t.margem}): <strong>+${r.total} LO</strong></li>`);
-      } else {
-        linhas.push(`<li class="t20d-ruim">A caravana se perdeu (Nobreza ${t.total} vs CD ${20 + k}). Investimento de ${fmtLO(s.caravana.investido)} LO perdido.</li>`);
-      }
-      await dominio.update({ "system.caravana": { ativa: false, dados: 0, investido: 0 } });
-    } else {
-      /* Teste cancelado: a caravana segue em viagem até a próxima etapa de impostos */
-      linhas.push(`<li>Teste da caravana cancelado — ela permanece em viagem até a próxima etapa de impostos.</li>`);
-    }
-  }
-
   /* Corrupção ativa */
   if (s.turno.eventosAtivos.some(e => e.key === "corrupcao")) {
     const r = await rolar("1d6");
@@ -1034,52 +995,92 @@ export async function cobrarImpostos(dominio, faixa) {
     linhas.push(`<li class="t20d-ruim">Corrupção na corte: <strong>–${r.total} LO</strong></li>`);
   }
 
-  /* Manutenção */
-  let saldo = s.tesouro.lo + ganho;
-  const manutCorte = s.manutencaoCorte;
-  let manutPaga = 0;
-  let quebraCorte = false;
-  if (manutCorte > 0) {
-    if (saldo >= manutCorte) { saldo -= manutCorte; manutPaga += manutCorte; linhas.push(`<li>Manutenção da corte: <strong>–${fmtLO(manutCorte)} LO</strong></li>`); }
-    else { quebraCorte = true; linhas.push(`<li class="t20d-ruim">Sem fundos para a corte (–${fmtLO(manutCorte)} LO): a corte cai uma categoria e há <strong>–5 em todas as ações neste turno</strong>.</li>`); }
-  }
-  const unidadesPerdidas = [];
-  const unidadesNovas = [];
-  for (const u of s.unidades) {
-    if (u.temporaria) { unidadesNovas.push(u); continue; }
-    const custoU = (UNIDADES[u.key]?.manutencao ?? 0) * (u.qtd ?? 1);
-    if (saldo >= custoU) { saldo -= custoU; manutPaga += custoU; unidadesNovas.push(u); }
-    else unidadesPerdidas.push(u);
-  }
-  if (manutPaga - manutCorte > 0 || (manutPaga > 0 && !quebraCorte && s.unidades.some(u => !u.temporaria))) {
-    const custoTropas = Math.round((manutPaga - (quebraCorte ? 0 : manutCorte)) * 100) / 100;
-    if (custoTropas > 0) linhas.push(`<li>Manutenção das tropas: <strong>–${fmtLO(custoTropas)} LO</strong></li>`);
-  }
-  for (const u of unidadesPerdidas) {
-    linhas.push(`<li class="t20d-ruim">Sem soldo, <strong>${u.qtd}× ${UNIDADES[u.key]?.nome}</strong> abandonam o domínio.</li>`);
-  }
-
-  /* Aplicar tudo */
-  const delta = saldo - s.tesouro.lo;
-  await movimentarTesouro(dominio, `Etapa de impostos (turno ${s.turno.numero})`, delta);
-  const updates = { "system.turno.impostosCobrados": true, "system.unidades": unidadesNovas };
-  if (quebraCorte) {
-    const idx = ORDEM_CORTES.indexOf(s.corte.categoria);
-    if (idx > 0) updates["system.corte.categoria"] = ORDEM_CORTES[idx - 1];
-    updates["system.turno.mod"] = (s.turno.mod ?? 0) - 5;
-  }
-  await dominio.update(updates);
-
-  await cartao(dominio, "Etapa 2: Impostos e Manutenção",
-    `<ul class="t20d-lista">${linhas.join("")}</ul>
-     <p>Resultado líquido: <strong class="${delta >= 0 ? "t20d-bom" : "t20d-ruim"}">${delta >= 0 ? "+" : ""}${fmtLO(delta)} LO</strong> · Tesouro: <strong>${fmtLO(saldo)} LO</strong></p>`,
-    { rolls });
-
-  /* Popularidade pela carga tributária */
+  /* Popularidade pela carga tributária, aplicada junto com a arrecadação */
+  let pop = 0, motivo = "";
   if (!s.emRevolta && s.tipo !== "mistico") {
-    if (faixa === "baixos") await ajustarPopularidade(dominio, +1, "Impostos baixos aliviam o povo.");
-    if (faixa === "altos") await ajustarPopularidade(dominio, -1, "Impostos altos pesam no bolso do povo.");
+    if (faixa === "baixos") { pop = +1; motivo = "Impostos baixos aliviam o povo."; }
+    if (faixa === "altos") { pop = -1; motivo = "Impostos altos pesam no bolso do povo."; }
   }
+  await cartaoDesfecho(dominio, "Etapa 2: Impostos", "impostos",
+    { linhas, total: Math.round(ganho * 100) / 100, pop, motivo, turno: s.turno.numero }, { manual: true, rolls });
+
+  await testarPier(dominio);
+  await retornarCaravana(dominio);
+
+  if (dominio.system.manutencaoTotal > 0) {
+    await cartaoDesfecho(dominio, "Etapa 2: Manutenção", "manutencao",
+      { corte: dominio.system.manutencaoCorte, tropas: dominio.system.manutencaoUnidades, turno: s.turno.numero }, { manual: true });
+  }
+}
+
+/** Linha que mostra cada dado rolado de novo pela Torre de Loras ou pela Filial do Presunto. */
+function htmlNovaRolagem(s, roll, aplicada) {
+  if (!aplicada) return "";
+  const fonte = s.temConstrucao("filial-do-presunto")
+    ? "Filial do Presunto: rola de novo cada 1 ou 2, uma vez por dado"
+    : "Torre de Loras: rola de novo cada 1, uma vez por dado";
+  const partes = [];
+  let rerolados = 0;
+  for (const dado of roll.dice) {
+    const originais = dado.results.slice(0, dado.number);
+    const novos = dado.results.slice(dado.number);
+    let k = 0;
+    for (const r of originais) {
+      if (r.rerolled) { rerolados++; partes.push(`<s>${r.result}</s> → <strong>${novos[k++]?.result ?? "?"}</strong>`); }
+      else partes.push(String(r.result));
+    }
+  }
+  const detalhe = rerolados ? `dados: ${partes.join(", ")}` : `dados: ${partes.join(", ")} (nenhum precisou rolar de novo)`;
+  return `<br><small class="t20d-nova-rolagem"><i class="fa-solid fa-rotate"></i> ${fonte}. ${detalhe}.</small>`;
+}
+
+/** Píer dos Piratas: 1 LO e Jogatina (CD 25) para atrair a feira. */
+async function testarPier(dominio) {
+  const s = dominio.system;
+  if (s.emRevolta || !s.temConstrucao("pier-dos-piratas") || s.tesouro.lo < 1) return;
+  const apostar = await DialogV2.confirm({
+    window: { title: "Píer dos Piratas" },
+    content: `<p>Gastar <strong>1 LO</strong> do tesouro e fazer um teste de Jogatina (CD 25)? Se passar, a feira do píer arrecada <strong>+1d4+1 LO</strong>.</p>`
+  });
+  if (!apostar) return;
+  const t = await testeRegente(dominio, "joga", 25, { rotulo: "Píer dos Piratas", incluirModificadores: false });
+  if (!t) return;
+  await movimentarTesouro(dominio, "Píer dos Piratas: 1 LO investido na feira", -1);
+  const dados = { ganho: null };
+  const rolls = [];
+  if (t.sucesso) {
+    const r = await rolar("1d4+1");
+    rolls.push(r);
+    dados.ganho = r.total;
+  }
+  await cartaoDesfecho(dominio, "Píer dos Piratas", "pier", dados, { t, manual: true, rolls });
+}
+
+/** Caravana em viagem: teste de Nobreza; o retorno vira um cartão para adicionar ao tesouro. */
+async function retornarCaravana(dominio) {
+  const s = dominio.system;
+  if (!s.caravana.ativa) return;
+  const k = s.caravana.dados;
+  const t = await testeRegente(dominio, "nobr", 20 + k, { rotulo: "Retorno da caravana" });
+  if (!t) {
+    /* Teste cancelado: a caravana segue em viagem até a próxima etapa de impostos */
+    await cartao(dominio, "Caravana", `<p>Teste da caravana cancelado — ela permanece em viagem até a próxima etapa de impostos.</p>`);
+    return;
+  }
+  const dados = { k, margem: t.margem, investido: s.caravana.investido, ganho: null };
+  const rolls = [];
+  if (t.sucesso) {
+    const r = await rolar(formulaCaravana(k, t.margem));
+    rolls.push(r);
+    dados.ganho = r.total;
+  }
+  await dominio.update({ "system.caravana": { ativa: false, dados: 0, investido: 0 } });
+  await cartaoDesfecho(dominio, "Retorno da Caravana", "caravana", dados, { t, manual: true, rolls });
+}
+
+function formulaCaravana(k, margem) {
+  const dado = margem >= 10 ? "2d4+1" : margem >= 5 ? "1d6+1" : "1d4+1";
+  return Array(k).fill(`(${dado})`).join(" + ");
 }
 
 /* --------------------------- Encerrar Turno ----------------------- */
@@ -1193,3 +1194,374 @@ export async function aplicarResultadoBatalha(dominio, margem) {
     await sincronizarEfeitos(dominio, { silencioso: true });
   }
 }
+
+
+/* ================================================================== */
+/* Cartões com desfecho: aplicar, desfazer e correção do mestre       */
+/* ================================================================== */
+/*
+ * Cada cartão de teste ou de arrecadação guarda em flags.<MODULO>.desfecho
+ * { acao, atorUuid, dados, sucesso (null = sem teste), manual, aplicado,
+ *   reg, por, desfeitoPor, alteradoPor }. "reg" lista o que o desfecho
+ * mudou no domínio, para desfazer sem tocar no resto.
+ *
+ * - Ações (manual: false) aplicam o desfecho na hora; o mestre pode
+ *   inverter o resultado do teste, e o desfecho oposto substitui o atual.
+ * - Arrecadações (manual: true) esperam alguém clicar em Aplicar; o
+ *   cartão registra quem aplicou e permite desfazer.
+ * Custos e ações gastos antes do teste nunca são devolvidos.
+ */
+
+const CANAL = `module.${MODULO}`;
+const esc = (v) => foundry.utils.escapeHTML(String(v ?? ""));
+const sinalLO = (v) => `${v >= 0 ? "+" : "–"}${fmtLO(Math.abs(v))} LO`;
+
+const DESFECHOS = {
+  aumentarCorte: {
+    texto: (d, ok) => !ok ? `<p>A corte permanece como está${d.custo ? " e o ouro foi gasto" : ""}.</p>`
+      : d.modo === "trocar" ? `<p>Você pode trocar um conselheiro na aba Domínio.</p>`
+      : `<p class="t20d-bom">A corte ${d.modo === "subir" ? "sobe" : "desce"} uma categoria.</p>`,
+    async aplicar(dominio, ok, d, reg) {
+      if (ok && d.modo !== "trocar") await ajustarCorte(dominio, d.modo === "subir" ? +1 : -1, "", reg);
+    }
+  },
+  extorquir: {
+    texto: (d, ok) => ok ? `<p>Impostos abusivos rendem <strong>+${d.ganho} LO</strong>.</p>` : `<p>O povo resiste às cobranças.</p>`,
+    async aplicar(dominio, ok, d, reg) {
+      if (!ok) return;
+      d.ganho ??= (await rolar(`1d6 + ${d.nivel}`)).total;
+      await movimentarTesouro(dominio, "Ação: Extorquir", d.ganho, reg);
+    }
+  },
+  festival: {
+    texto: (d, ok) => ok ? `<p>A festa é um sucesso!</p>` : `<p>A festa fracassa, e o ouro foi gasto mesmo assim.</p>`,
+    async aplicar(dominio, ok, d, reg) {
+      if (ok) await ajustarPopularidade(dominio, +1, "O festival alegra o povo.", reg);
+    }
+  },
+  financas: {
+    texto: (d, ok) => d.nota ?? (ok ? "" : `<p>A negociação com os cambistas fracassa; nada é convertido.</p>`),
+    async aplicar(dominio, ok, d, reg) {
+      if (!ok) { d.nota = null; return; }
+      const regente = await fromUuid(d.regenteUuid).catch(() => null);
+      if (!regente) { d.nota = `<p class="t20d-ruim">O regente não foi encontrado; nada é convertido.</p>`; return; }
+      /* Saldos relidos na hora: o teste remoto pode demorar, e o dinheiro
+       * ou o tesouro podem ter mudado nesse meio tempo. */
+      if (d.direcao === "paraLO") {
+        const antes = { ...regente.system.dinheiro };
+        const pagamento = gastarMaioresMoedas(antes, d.custoDec);
+        if (!pagamento) { d.nota = `<p class="t20d-ruim">${esc(regente.name)} já não possui ${fmtDecimos(d.custoDec)}; nada é convertido.</p>`; return; }
+        await regente.update({ "system.dinheiro": pagamento.carteira });
+        const delta = {};
+        for (const k of Object.keys(pagamento.carteira)) delta[k] = pagamento.carteira[k] - (antes[k] ?? 0);
+        reg.push({ t: "dinheiro", atorUuid: regente.uuid, delta });
+        await movimentarTesouro(dominio, `Finanças: conversão de ${fmtDecimos(d.custoDec)} (${regente.name})`, d.qtdLO, reg);
+        const gasto = new Intl.ListFormat("pt-BR", { type: "conjunction" }).format(pagamento.gasto);
+        d.nota = `<p><strong>${gasto}</strong> de ${esc(regente.name)} tornam-se <strong>${d.qtdLO} LO</strong> no tesouro.</p>`;
+      } else {
+        if (dominio.system.tesouro.lo < d.qtdLO) { d.nota = `<p class="t20d-ruim">O tesouro já não possui ${d.qtdLO} LO; nada é convertido.</p>`; return; }
+        await movimentarTesouro(dominio, `Finanças: conversão em ${d.qtdTO.toLocaleString("pt-BR")} TO (${regente.name})`, -d.qtdLO, reg);
+        await regente.update({ "system.dinheiro.to": (regente.system.dinheiro?.to ?? 0) + d.qtdTO });
+        reg.push({ t: "dinheiro", atorUuid: regente.uuid, delta: { to: d.qtdTO } });
+        d.nota = `<p><strong>${d.qtdLO} LO</strong> do tesouro tornam-se <strong>${d.qtdTO.toLocaleString("pt-BR")} TO</strong> para ${esc(regente.name)}.</p>`;
+      }
+    }
+  },
+  governar: {
+    texto: (d, ok) => ok ? `<p class="t20d-bom">O domínio prospera e alcança o <strong>nível ${d.proximo}</strong>!</p>`
+      : `<p>As demandas dos súditos superam seus esforços — o domínio permanece no nível ${d.anterior}.</p>`,
+    async aplicar(dominio, ok, d, reg) {
+      if (!ok) return;
+      reg.push({ t: "nivel", nivel: dominio.system.nivel });
+      await dominio.update({ "system.nivel": d.proximo }, { t20dSkipSync: true });
+      await sincronizarEfeitos(dominio, { silencioso: true });
+    }
+  },
+  evento: {
+    texto: (d, ok) => ok ? `<p class="t20d-bom">A situação <strong>${esc(d.pend.nome)}</strong> é resolvida!</p>` : `<p class="t20d-ruim">O problema persiste.</p>`,
+    async aplicar(dominio, ok, d, reg) {
+      const pend = d.pend;
+      if (ok) {
+        const ativos = dominio.system.turno.eventosAtivos;
+        if (ativos.some(e => e.id === pend.id)) {
+          reg.push({ t: "evento", pend });
+          await dominio.update({ "system.turno.eventosAtivos": ativos.filter(e => e.id !== pend.id) });
+        }
+        if (pend.key === "corrupcao") await ajustarCorte(dominio, -1, "As demissões (ou execuções) necessárias reduzem a corte.", reg);
+      } else if (!pend.persistente) {
+        await falharEvento(dominio, pend, { remover: true }, reg);
+      }
+    }
+  },
+  impostos: {
+    rotulo: (d) => d.total >= 0 ? `Adicionar ${fmtLO(d.total)} LO ao tesouro` : `Descontar ${fmtLO(-d.total)} LO do tesouro`,
+    texto: (d) => `<ul class="t20d-lista">${d.linhas.join("")}</ul>
+      <p>Arrecadação: <strong class="${d.total >= 0 ? "t20d-bom" : "t20d-ruim"}">${sinalLO(d.total)}</strong>${d.pop ? ` · popularidade ${d.pop > 0 ? "+1" : "–1"} categoria` : ""}</p>`,
+    async aplicar(dominio, ok, d, reg) {
+      if (d.total) await movimentarTesouro(dominio, `Etapa de impostos (turno ${d.turno})`, d.total, reg);
+      if (d.pop) await ajustarPopularidade(dominio, d.pop, d.motivo, reg);
+    }
+  },
+  pier: {
+    rotulo: (d, ok) => ok ? `Adicionar ${d.ganho ?? "1d4+1"} LO ao tesouro` : null,
+    texto: (d, ok) => ok ? `<p class="t20d-bom">A feira do píer lota! Arrecada <strong>${d.ganho != null ? `+${d.ganho} LO` : "+1d4+1 LO (rolado ao aplicar)"}</strong>.</p>`
+      : `<p class="t20d-ruim">Pouco movimento no píer: o 1 LO investido foi gasto.</p>`,
+    async aplicar(dominio, ok, d, reg) {
+      if (!ok) return;
+      d.ganho ??= (await rolar("1d4+1")).total;
+      await movimentarTesouro(dominio, "Píer dos Piratas: feira", d.ganho, reg);
+    }
+  },
+  caravana: {
+    rotulo: (d, ok) => ok ? `Adicionar ${d.ganho ?? "o retorno"} LO ao tesouro` : null,
+    texto: (d, ok) => ok ? `<p class="t20d-bom">A caravana retorna! Rende <strong>${d.ganho != null ? `+${d.ganho} LO` : `${formulaCaravana(d.k, d.margem)} LO (rolado ao aplicar)`}</strong>.</p>`
+      : `<p class="t20d-ruim">A caravana se perdeu. Investimento de ${fmtLO(d.investido)} LO perdido.</p>`,
+    async aplicar(dominio, ok, d, reg) {
+      if (!ok) return;
+      d.ganho ??= (await rolar(formulaCaravana(d.k, d.margem))).total;
+      await movimentarTesouro(dominio, "Retorno da caravana", d.ganho, reg);
+    }
+  },
+  manutencao: {
+    rotulo: () => "Pagar manutenção",
+    texto: (d) => d.nota ?? `<p>Manutenção do turno: corte ${fmtLO(d.corte)} LO + tropas ${fmtLO(d.tropas)} LO = <strong>${fmtLO(d.corte + d.tropas)} LO</strong>.</p>
+      <p class="notes">Adicione a arrecadação antes de pagar. Sem fundos, a corte cai uma categoria (–5 nas ações do turno) e tropas sem soldo abandonam o domínio.</p>`,
+    async aplicar(dominio, ok, d, reg) {
+      const s = dominio.system;
+      const unidadesAntes = foundry.utils.deepClone(s.unidades);
+      const categoriaAntes = s.corte.categoria;
+      const modAntes = s.turno.mod ?? 0;
+      let saldo = s.tesouro.lo;
+      const linhas = [];
+      let pago = 0;
+      let quebraCorte = false;
+      const manutCorte = s.manutencaoCorte;
+      if (manutCorte > 0) {
+        if (saldo >= manutCorte) { saldo -= manutCorte; pago += manutCorte; linhas.push(`<li>Manutenção da corte: <strong>–${fmtLO(manutCorte)} LO</strong></li>`); }
+        else { quebraCorte = true; linhas.push(`<li class="t20d-ruim">Sem fundos para a corte (–${fmtLO(manutCorte)} LO): a corte cai uma categoria e há <strong>–5 em todas as ações neste turno</strong>.</li>`); }
+      }
+      const unidadesNovas = [];
+      const perdidas = [];
+      let tropas = 0;
+      for (const u of s.unidades) {
+        if (u.temporaria) { unidadesNovas.push(u); continue; }
+        const custoU = (unidadeDoDominio(s, u.key)?.manutencao ?? 0) * (u.qtd ?? 1);
+        if (saldo >= custoU) { saldo -= custoU; tropas += custoU; unidadesNovas.push(u); }
+        else perdidas.push(u);
+      }
+      tropas = Math.round(tropas * 100) / 100;
+      if (tropas > 0) linhas.push(`<li>Manutenção das tropas: <strong>–${fmtLO(tropas)} LO</strong></li>`);
+      for (const u of perdidas) linhas.push(`<li class="t20d-ruim">Sem soldo, <strong>${u.qtd}× ${UNIDADES[u.key]?.nome}</strong> abandonam o domínio.</li>`);
+      pago += tropas;
+
+      if (pago > 0) await movimentarTesouro(dominio, `Manutenção (turno ${d.turno})`, -pago, reg);
+      const updates = {};
+      if (perdidas.length) {
+        reg.push({ t: "unidades", unidades: unidadesAntes });
+        updates["system.unidades"] = unidadesNovas;
+      }
+      if (quebraCorte) {
+        const idx = ORDEM_CORTES.indexOf(categoriaAntes);
+        reg.push({ t: "corte", categoria: categoriaAntes }, { t: "turnoMod", mod: modAntes });
+        if (idx > 0) updates["system.corte.categoria"] = ORDEM_CORTES[idx - 1];
+        updates["system.turno.mod"] = modAntes - 5;
+      }
+      if (Object.keys(updates).length) await dominio.update(updates);
+      if (!linhas.length) linhas.push(`<li>Nada a pagar neste turno.</li>`);
+      d.nota = `<ul class="t20d-lista">${linhas.join("")}</ul><p>Tesouro após a manutenção: <strong>${fmtLO(dominio.system.tesouro.lo)} LO</strong></p>`;
+    }
+  }
+};
+
+/** Desfaz, em ordem inversa, o que um desfecho registrou. */
+async function desfazerRegistro(dominio, reg) {
+  for (const op of [...reg].reverse()) {
+    const s = dominio.system;
+    switch (op.t) {
+      case "lo":
+        if (op.delta) await movimentarTesouro(dominio, `Desfeito: ${op.desc}`, -op.delta);
+        break;
+      case "pop":
+        await dominio.update({ "system.popularidade": op.popularidade, "system.emRevolta": op.emRevolta });
+        break;
+      case "corte":
+        await dominio.update({ "system.corte.categoria": op.categoria });
+        break;
+      case "turnoMod":
+        await dominio.update({ "system.turno.mod": op.mod });
+        break;
+      case "nivel":
+        await dominio.update({ "system.nivel": op.nivel }, { t20dSkipSync: true });
+        await sincronizarEfeitos(dominio, { silencioso: true });
+        break;
+      case "unidades":
+        await dominio.update({ "system.unidades": op.unidades });
+        break;
+      case "construcao":
+        if (!s.construcoes.some(c => c.id === op.entrada.id)) {
+          await dominio.update({ "system.construcoes": [...s.construcoes, op.entrada] });
+          await sincronizarEfeitos(dominio, { silencioso: true });
+        }
+        break;
+      case "evento":
+        if (!s.turno.eventosAtivos.some(e => e.id === op.pend.id))
+          await dominio.update({ "system.turno.eventosAtivos": [...s.turno.eventosAtivos, op.pend] });
+        break;
+      case "dinheiro": {
+        const ator = await fromUuid(op.atorUuid).catch(() => null);
+        if (!ator) break;
+        const updates = {};
+        for (const [k, v] of Object.entries(op.delta)) updates[`system.dinheiro.${k}`] = (ator.system.dinheiro?.[k] ?? 0) - v;
+        await ator.update(updates);
+        break;
+      }
+    }
+  }
+}
+
+function htmlDesfecho(def, flag) {
+  let status = "";
+  if (flag.alteradoPor) status += `<p class="t20bd-resultado-alterado"><i class="fa-solid fa-user-shield"></i> Resultado alterado pelo mestre ${esc(flag.alteradoPor)}.</p>`;
+  if (flag.manual && flag.aplicado) status += `<p class="t20bd-resultado-alterado"><i class="fa-solid fa-check"></i> Aplicado ao domínio por ${esc(flag.por)}.</p>`;
+  else if (flag.manual && flag.desfeitoPor) status += `<p class="t20bd-resultado-alterado"><i class="fa-solid fa-rotate-left"></i> Desfeito por ${esc(flag.desfeitoPor)}.</p>`;
+  return `<div data-t20bd-desfecho-acao>${def.texto(flag.dados, flag.sucesso)}${status}</div>`;
+}
+
+function conteudoAtualizado(conteudo, def, flag) {
+  const div = document.createElement("div");
+  div.innerHTML = conteudo;
+  const res = div.querySelector("[data-t20bd-resultado-teste]");
+  if (res && flag.sucesso !== null) {
+    res.classList.remove("t20d-bom", "t20d-ruim");
+    res.classList.add(flag.sucesso ? "t20d-bom" : "t20d-ruim");
+    res.innerHTML = `<strong>${flag.sucesso ? "SUCESSO" : "FALHA"}</strong>`;
+  }
+  const alvo = div.querySelector("[data-t20bd-desfecho-acao]");
+  if (alvo) alvo.outerHTML = htmlDesfecho(def, flag);
+  return div.innerHTML;
+}
+
+/**
+ * Cria o cartão de um desfecho. Ações aplicam o desfecho logo após o
+ * cartão (os cartões de efeito, como Popularidade, aparecem depois dele).
+ */
+async function cartaoDesfecho(dominio, titulo, acao, dados, { t = null, manual = false, rolls = [] } = {}) {
+  const def = DESFECHOS[acao];
+  const flag = {
+    acao, atorUuid: dominio.uuid, dados, sucesso: t ? t.sucesso : null, manual,
+    aplicado: false, reg: [], por: null, desfeitoPor: null, alteradoPor: null
+  };
+  const corpo = (t ? htmlResultadoTeste(t) : "") + htmlDesfecho(def, flag);
+  const mensagem = await cartao(dominio, titulo, corpo, {
+    rolls: t ? [t.roll, ...rolls] : rolls, rollMode: t?.rollMode ?? null, flagsModulo: { desfecho: flag }
+  });
+  if (!manual) await operarCartao(mensagem, "aplicar", game.user.name);
+  return mensagem;
+}
+
+/** aplicar | desfazer | inverter — executado por quem pode alterar a mensagem e o domínio. */
+async function operarCartao(mensagem, op, nomeUsuario) {
+  const atual = game.messages.get(mensagem.id) ?? mensagem;
+  const flag = foundry.utils.deepClone(atual.getFlag(MODULO, "desfecho"));
+  const def = DESFECHOS[flag?.acao];
+  if (!def) return;
+  const dominio = await fromUuid(flag.atorUuid).catch(() => null);
+  if (!dominio) return ui.notifications.error("O domínio deste cartão não foi encontrado.");
+
+  const aplicar = async () => {
+    flag.reg = [];
+    await def.aplicar(dominio, flag.sucesso, flag.dados, flag.reg);
+    flag.aplicado = true;
+    flag.por = nomeUsuario;
+    flag.desfeitoPor = null;
+  };
+  const desfazer = async () => {
+    await desfazerRegistro(dominio, flag.reg ?? []);
+    flag.reg = [];
+    flag.aplicado = false;
+    flag.dados.nota = null;
+  };
+
+  if (op === "aplicar") {
+    if (flag.aplicado) return;
+    await aplicar();
+  } else if (op === "desfazer") {
+    if (!flag.aplicado) return;
+    await desfazer();
+    flag.por = null;
+    flag.desfeitoPor = nomeUsuario;
+  } else if (op === "inverter") {
+    if (flag.sucesso === null) return;
+    const estavaAplicado = flag.aplicado;
+    if (estavaAplicado) await desfazer();
+    flag.sucesso = !flag.sucesso;
+    flag.alteradoPor = nomeUsuario;
+    /* Ações reaplicam na hora; arrecadações só se já tinham sido aplicadas
+     * e o novo resultado ainda tiver algo a aplicar. */
+    if (!flag.manual || (estavaAplicado && def.rotulo?.(flag.dados, flag.sucesso))) await aplicar();
+  } else return;
+
+  await atual.update({ content: conteudoAtualizado(atual.content, def, flag), [`flags.${MODULO}.desfecho`]: flag });
+}
+
+/** Clique num botão do cartão: executa aqui ou pede ao mestre conectado. */
+async function pedirOperacao(mensagem, op) {
+  const dominio = fromUuidSync(mensagem.getFlag(MODULO, "desfecho")?.atorUuid);
+  if (op === "inverter" && !game.user.isGM) return;
+  if (mensagem.isOwner && dominio?.isOwner) return operarCartao(mensagem, op, game.user.name);
+  const mestre = game.users.activeGM;
+  if (!mestre) return ui.notifications.warn("É preciso um mestre conectado para aplicar este cartão.");
+  game.socket.emit(CANAL, { acao: "cartaoDominio", destino: mestre.id, origem: game.user.id, mensagemId: mensagem.id, op });
+}
+
+export function registrarCartoesDominio() {
+  game.socket.on(CANAL, async (msg) => {
+    if (msg?.acao !== "cartaoDominio" || msg.destino !== game.user.id || !game.user.isGM) return;
+    const mensagem = game.messages.get(msg.mensagemId);
+    const usuario = game.users.get(msg.origem);
+    const dominio = fromUuidSync(mensagem?.getFlag(MODULO, "desfecho")?.atorUuid);
+    if (!mensagem || !usuario || !dominio?.testUserPermission(usuario, "OWNER") || msg.op === "inverter") return;
+    await operarCartao(mensagem, msg.op, usuario.name);
+  });
+}
+
+Hooks.on("renderChatMessageHTML", (mensagem, html) => {
+  const flag = mensagem.getFlag(MODULO, "desfecho");
+  const alvo = html.querySelector("[data-t20bd-desfecho-acao]");
+  const def = DESFECHOS[flag?.acao];
+  if (!def || !alvo || html.querySelector(".t20bd-controle-obra")) return;
+  const dominio = fromUuidSync(flag.atorUuid);
+  const botoes = [];
+  if (flag.manual && (game.user.isGM || dominio?.isOwner)) {
+    if (flag.aplicado) botoes.push(["desfazer", "fa-rotate-left", "Desfazer"]);
+    else {
+      const rotulo = def.rotulo?.(flag.dados, flag.sucesso);
+      if (rotulo) botoes.push(["aplicar", "fa-check", rotulo]);
+    }
+  }
+  if (flag.sucesso !== null && game.user.isGM)
+    botoes.push(["inverter", "fa-arrow-right-arrow-left", `Alterar para ${flag.sucesso ? "FALHA" : "SUCESSO"}`]);
+  if (!botoes.length) return;
+
+  const controle = document.createElement("div");
+  controle.className = "t20bd-controle-obra";
+  for (const [op, icone, rotulo] of botoes) {
+    const botao = document.createElement("button");
+    botao.type = "button";
+    botao.dataset.op = op;
+    botao.innerHTML = `<i class="fa-solid ${icone}"></i> ${esc(rotulo)}`;
+    botao.addEventListener("click", async () => {
+      controle.querySelectorAll("button").forEach(b => b.disabled = true);
+      try {
+        await pedirOperacao(mensagem, op);
+      } catch (erro) {
+        console.error(`${MODULO} | Falha ao operar o cartão de domínio.`, erro);
+        ui.notifications.error("Não foi possível alterar o cartão. Consulte o console.");
+      } finally {
+        controle.querySelectorAll("button").forEach(b => { if (b.isConnected) b.disabled = false; });
+      }
+    });
+    controle.append(botao);
+  }
+  alvo.insertAdjacentElement("afterend", controle);
+});

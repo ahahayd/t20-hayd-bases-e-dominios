@@ -163,6 +163,40 @@ export const UNIDADES = {
     nota: "Se causarem dano na mesma rodada em que ficarem adjacentes ao alvo, causam +1d8 pontos de dano." }
 };
 
+/** Soma um bônus fixo a uma fórmula de dano ("1d8+3" + 5 → "1d8+8"). */
+function somarDano(dano, bonus) {
+  const m = /^(\d+d\d+)([+-]\d+)?$/.exec(dano);
+  if (!m) return `${dano}+${bonus}`;
+  const total = Number(m[2] ?? 0) + bonus;
+  return total ? `${m[1]}${total > 0 ? "+" : ""}${total}` : m[1];
+}
+
+/**
+ * Estatísticas de uma unidade no domínio, já com as construções de
+ * Spoilers de Guerra Artoniana (Guilda dos Arqueiros, Guarda de Karst,
+ * Capela da Guerra). Aceita o system do domínio.
+ */
+export function unidadeDoDominio(system, key) {
+  const def = UNIDADES[key];
+  if (!def) return null;
+  const tem = (k) => system.construcoes?.some(c => c.key === k);
+  const u = { ...def };
+  if (key === "arqueiros" && tem("guilda-dos-arqueiros")) { u.dano = "1d8+3"; u.manutencao = def.manutencao / 2; }
+  if (key === "camponeses" && tem("guarda-de-karst")) { u.defesa = 16; u.dano = "1d8+1"; }
+  if (tem("capela-da-guerra")) u.dano = somarDano(u.dano, 5);
+  return u;
+}
+
+/**
+ * Fórmula dos impostos com as novas rolagens da Torre de Loras (1) e da
+ * Filial do Presunto (1 ou 2): cada dado rola de novo uma única vez.
+ */
+export function formulaImpostos(system, formula) {
+  const tem = (k) => system.construcoes?.some(c => c.key === k);
+  const limite = tem("filial-do-presunto") ? 2 : tem("torre-de-loras") ? 1 : 0;
+  return limite ? String(formula).replace(/(\d*d\d+)/g, `$1r<=${limite}`) : String(formula);
+}
+
 /* ------------------------------------------------------------------ */
 /* Construções — Tabela 4-10                                          */
 /*  categoria define a perícia do teste de Construir.                 */
@@ -174,7 +208,9 @@ export const CATEGORIAS_CONSTRUCAO = {
   guerra:     { nome: "Guerra",     pericia: "guer" },
   enganacao:  { nome: "Enganação",  pericia: "enga" },
   religiao:   { nome: "Religião",   pericia: "reli" },
-  misticismo: { nome: "Misticismo", pericia: "mist" }
+  misticismo: { nome: "Misticismo", pericia: "mist" },
+  /* Recompensas de campanha: seção oculta no catálogo, sem custo nem teste. */
+  spoilers:   { nome: "Spoilers de Guerra Artoniana", nomeNaFicha: "O Ressurgir de Karst", pericia: null, oculta: true }
 };
 
 const fx = (changes, extra = {}) => ({ changes, ...extra });
@@ -451,7 +487,41 @@ export const CONSTRUCOES = {
       { nota: "O bônus vale apenas para magias arcanas — desative se o regente também for conjurador divino." }) },
 
   "linhas-misticas": { nome: "Linhas Místicas", categoria: "misticismo", custo: 25,
-    beneficio: "Ao descansar, a recuperação de PM aumenta em +1 por nível (manual)", efeito: null }
+    beneficio: "Ao descansar, a recuperação de PM aumenta em +1 por nível (manual)", efeito: null },
+
+  /* ---------- SPOILERS DE GUERRA ARTONIANA ----------
+     Cada personagem recrutado concede uma estrutura única ao domínio.
+     Gratuitas: entram direto, sem teste, ação, LO nem vaga. */
+  "guilda-dos-arqueiros": { nome: "Guilda dos Arqueiros", categoria: "spoilers", custo: 0, npc: "Almuth Benkhart",
+    beneficio: "A manutenção das tropas de arqueiros cai pela metade e o dano delas aumenta para 1d8+3", efeito: null },
+
+  "restaurante-barril-de-fogo": { nome: "Restaurante Barril de Fogo", categoria: "spoilers", custo: 0, npc: "Lasus de Gallien",
+    beneficio: "Pratos especiais adquiridos no feudo têm seu efeito numérico dobrado (ex.: batata valkariana dá +2d6)", efeito: null },
+
+  "torre-de-loras": { nome: "A Torre de Loras", categoria: "spoilers", custo: 0, npc: "Lady Loras Karst",
+    beneficio: "Rola novamente qualquer 1 nos dados de impostos (uma vez por dado) e a CD da ação Finanças diminui para 15", efeito: null },
+
+  "estabulo-dos-cavalaricos": { nome: "Estábulo dos Cavalariços", categoria: "spoilers", custo: 0, npc: "Lothar Algherulff",
+    beneficio: "Administradores do feudo se tornam treinados em Cavalgar; se já forem treinados, recebem +2 nela",
+    efeito: fx([], { escolha: "cavalgar" }) },
+
+  "templo-biblioteca-de-tibar": { nome: "Templo-Biblioteca de Tibar", categoria: "spoilers", custo: 0, npc: "Isilgro Coração de Ouro",
+    beneficio: "Uma vez por turno de domínio, um teste para administrar o feudo rola dois dados e usa o melhor", efeito: null },
+
+  "orquestra-vazia": { nome: "Orquestra Vazia", categoria: "spoilers", custo: 0, npc: "Kadeen, o Menino Mágico",
+    beneficio: "Uma vez por turno de domínio, administradores recebem +1d4 em um teste de ação de domínio", efeito: null },
+
+  "filial-do-presunto": { nome: "Filial do Presunto", categoria: "spoilers", custo: 0, npc: "Klunc, o Bárbaro",
+    beneficio: "Rola novamente qualquer 1 ou 2 nos dados de impostos (uma vez por dado)", efeito: null },
+
+  "guarda-de-karst": { nome: "A Guarda de Karst", categoria: "spoilers", custo: 0, npc: "Phryxos Filho de Goblin",
+    beneficio: "Convocar Camponeses invoca +1 unidade; camponeses convocados têm Defesa 16 e dano 1d8+1", efeito: null },
+
+  "capela-da-guerra": { nome: "Capela da Guerra", categoria: "spoilers", custo: 0, npc: "Senhor Porrada",
+    beneficio: "As tropas do feudo recebem +5 em rolagens de dano; permanece mesmo que o orc deixe o feudo", efeito: null },
+
+  "pier-dos-piratas": { nome: "Píer dos Piratas", categoria: "spoilers", custo: 0, npc: "Nargom Mandíbula",
+    beneficio: "Na etapa de impostos, um administrador pode gastar 1 LO e testar Jogatina (CD 25); se passar, arrecada +1d4+1 LO", efeito: null }
 };
 
 /* ------------------------------------------------------------------ */

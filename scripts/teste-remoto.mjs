@@ -83,7 +83,11 @@ function opcoesPericias(ator, selecionada) {
     .join("");
 }
 
-async function escolherPericia(ator, msg) {
+/**
+ * Janela de escolha da perícia do teste (a indicada vem selecionada).
+ * Usada no pedido remoto e nos testes de Domínio rolados localmente.
+ */
+export async function escolherPericia(ator, msg) {
   const onde = msg.local ? ` em <strong>${esc(msg.local)}</strong>` : "";
   const cd = msg.cd != null && msg.cd !== "" ? `<p class="notes">Dificuldade: CD ${esc(msg.cd)}</p>` : "";
   const content = `
@@ -92,7 +96,7 @@ async function escolherPericia(ator, msg) {
       ${cd}
       <div class="form-group"><label>Perícia do teste</label>
         <select name="pericia">${opcoesPericias(ator, msg.pericia)}</select></div>
-      <p class="notes">A perícia indicada pelo mestre já vem selecionada. Troque só se ele aprovar outra.</p>
+      <p class="notes">${esc(msg.nota ?? "A perícia indicada pelo mestre já vem selecionada. Troque só se ele aprovar outra.")}</p>
     </div>`;
   return DialogV2.prompt({
     window: { title: `Teste: ${msg.rotulo || msg.textoAcao}`, icon: "fa-solid fa-dice-d20" },

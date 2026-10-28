@@ -22,3 +22,5 @@ import "./ressincronizar-v14.mjs";
 
 import { registrarTesteRemoto } from "./teste-remoto.mjs";
 Hooks.once("ready", registrarTesteRemoto);
+import { registrarCartoesDominio } from "./dominios/acoes.mjs";
+Hooks.once("ready", registrarCartoesDominio);

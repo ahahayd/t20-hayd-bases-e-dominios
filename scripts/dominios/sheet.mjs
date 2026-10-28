@@ -6,7 +6,7 @@ import {
   MODULO, TERRENOS, CORTES, ORDEM_CORTES, CONSELHEIROS, POPULARIDADES,
   ORDEM_POPULARIDADE, IMPOSTOS, CATEGORIAS_CONSTRUCAO,
   UNIDADES, ACOES, labelPericia, temaHayd, corDominio,
-  obterConstrucoes, caminhosSugeridos
+  obterConstrucoes, caminhosSugeridos, unidadeDoDominio
 } from "./catalogo.mjs";
 import { listaOficios } from "../bases/catalogo.mjs";
 import * as Acoes from "./acoes.mjs";
@@ -110,7 +110,7 @@ export class DominioSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
         homebrew: !!def.homebrew,
         beneficio: def.beneficio ?? "",
         aviso: def.aviso ?? null,
-        categoria: CATEGORIAS_CONSTRUCAO[def.categoria]?.nome ?? "",
+        categoria: CATEGORIAS_CONSTRUCAO[def.categoria]?.nomeNaFicha ?? CATEGORIAS_CONSTRUCAO[def.categoria]?.nome ?? "",
         temEfeito: !!def.efeito,
         precisaEscolha: ["pericia", "oficio"].includes(def.efeito?.escolha),
         escolhaRotulo: c.escolha ? labelPericia(c.escolha) : null,
@@ -128,7 +128,7 @@ export class DominioSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
 
     /* Unidades */
     const unidades = s.unidades.map(u => {
-      const def = UNIDADES[u.key] ?? {};
+      const def = unidadeDoDominio(s, u.key) ?? {};
       return { ...u, ...def, nome: def.nome ?? u.key, poderTotal: (def.poder ?? 0) * (u.qtd ?? 1) };
     });
 
@@ -363,25 +363,28 @@ export class DominioSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     }
     let html = `<div class="t20d-catalogo${temaHayd() ? " tema-hayd" : ""}"${temaHayd() ? ` style="--t20d-destaque: ${corDominio(this.actor)}"` : ""}>`;
     for (const [cat, lista] of Object.entries(grupos)) {
-      html += `<h3>${cat} <small>(teste de ${cat}, CD ${20 + s.nivel})</small></h3><ul>`;
+      const oculta = !!CATEGORIAS_CONSTRUCAO[lista[0]?.categoria]?.oculta;
+      html += oculta
+        ? `<details class="t20d-spoilers"><summary>${cat} <small>(gratuitas, sem teste)</small></summary><ul>`
+        : `<h3>${cat} <small>(teste de ${cat}, CD ${20 + s.nivel})</small></h3><ul>`;
       for (const c of lista.sort((a, b) => a.nome.localeCompare(b.nome, "pt-BR"))) {
         const desabilitada = c.erro ? "desabilitada" : "";
-        const titulo = c.erro ?? `${c.beneficio}. Custo ${c.custo} LO.`;
+        const titulo = c.erro ?? (oculta ? `${c.beneficio}.` : `${c.beneficio}. Custo ${c.custo} LO.`);
         html += `<li class="${desabilitada}" title="${titulo.replaceAll('"', "&quot;")}">
           <button type="button" data-key="${c.key}" ${c.erro ? "disabled" : ""}>
-            <strong>${c.nome}${c.homebrew ? " ★" : ""}</strong> <span class="t20d-custo">${c.custo} LO</span>
+            <strong>${c.nome}${c.homebrew ? " ★" : ""}</strong> <span class="t20d-custo">${oculta ? "grátis" : `${c.custo} LO`}</span>
           </button>
-          <span class="t20d-beneficio">${c.beneficio}</span>
+          <span class="t20d-beneficio">${c.npc ? `<em>${c.npc}.</em> ` : ""}${c.beneficio}</span>
           ${c.aviso ? `<span class="t20b-aviso"><i class="fa-solid fa-circle-info"></i> <strong>${c.aviso}</strong></span>` : ""}
           ${c.erro ? `<span class="t20d-erro">${c.erro}</span>` : ""}
         </li>`;
       }
-      html += `</ul>`;
+      html += oculta ? `</ul></details>` : `</ul>`;
     }
     html += `</div>`;
 
     const dialog = new DialogV2({
-      window: { title: `Catálogo de Construções — ${s.construcoes.length}/${s.maxConstrucoes}`, resizable: true },
+      window: { title: `Catálogo de Construções — ${s.construcoesOcupadas}/${s.maxConstrucoes}`, resizable: true },
       position: { width: 620, height: 640 },
       content: html,
       buttons: [{ action: "fechar", label: "Fechar", default: true }]
@@ -455,6 +458,7 @@ export class DominioSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       .map(c => `<option value="${c.key}">${c.rotulo}</option>`)
       .join("");
     const categorias = Object.entries(CATEGORIAS_CONSTRUCAO)
+      .filter(([, v]) => !v.oculta)
       .map(([k, v]) => `<option value="${k}">${v.nome} (teste de ${labelPericia(v.pericia)})</option>`)
       .join("");
     const linhasEfeito = [0, 1, 2, 3].map(i => `
@@ -550,7 +554,7 @@ export class DominioSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       const req = def.construcao ? obterConstrucoes(this.actor)[def.construcao]?.nome : "—";
       linhas += `<tr class="${liberada ? "" : "desabilitada"}">
         <td><strong>${def.nome}</strong><br><small>Requer: ${req}</small></td>
-        <td>${def.custo} LO</td><td>${def.manutencao} LO</td><td>${def.poder}</td>
+        <td>${def.custo} LO</td><td>${unidadeDoDominio(s, key).manutencao} LO</td><td>${def.poder}</td>
         <td><input type="number" name="${key}" value="0" min="0" ${liberada ? "" : "disabled"} style="width:60px"></td>
       </tr>`;
     }
